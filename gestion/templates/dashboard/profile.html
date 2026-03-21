@@ -1,0 +1,299 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% load static %}
+
+{% block dashboard_content %}
+<style>
+    .sidebar {
+        width: 250px;
+        background-color: #E6F2EF;
+        height: 100vh;
+        position: fixed;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid #dee2e6;
+    }
+    .main-content {
+        margin-left: 250px;
+        background-color: #F8F9FA;
+        min-height: 100vh;
+        padding: 20px;
+    }
+    .nav-link {
+        color: #333 !important;
+        padding: 12px 20px;
+        border-radius: 0;
+        font-weight: 500;
+        transition: background-color 0.2s ease;
+    }
+    .nav-link:hover, .nav-link.active {
+        background-color: #CCE7E0;
+    }
+    .nav-link i {
+        width: 24px;
+        text-align: center;
+        margin-right: 10px;
+    }
+    .profile-header {
+        padding: 20px;
+        text-align: center;
+        background-color: #28C7A2;
+        color: white;
+    }
+    .bg-theme-primary {
+        background-color: #28C7A2;
+    }
+    .bg-theme-secondary {
+        background-color: #3A6158;
+    }
+    .btn-theme-primary {
+        background-color: #28C7A2;
+        color: white;
+    }
+    .btn-theme-primary:hover {
+        background-color: #1fa588;
+        color: white;
+    }
+    .password-label-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    .password-toggle {
+        cursor: pointer;
+        color: #6c757d;
+        margin-left: 10px;
+    }
+    .alert {
+        margin-top: 20px;
+    }
+    .password-input-group {
+        position: relative;
+    }
+</style>
+
+<div class="d-flex">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="profile-header">
+            <i class="fas fa-user-circle fa-4x mb-3"></i>
+            <h5>{{ user.get_full_name|default:user.username }}</h5>
+            <p class="small">{{ user.email }}</p>
+        </div>
+        
+        <ul class="nav flex-column mt-3">
+            <li class="nav-item">
+                <a class="nav-link {% if not show_security %}active{% endif %}" href="#" onclick="showSection('profile')">
+                    <i class="fas fa-user mr-2"></i>
+                    Informations Personnelles
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if show_security %}active{% endif %}" href="#" onclick="showSection('security')">
+                    <i class="fas fa-shield-alt mr-2"></i>
+                    Sécurité
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Profile Section -->
+        <div id="profile-section" class="content-section" {% if show_security %}style="display: none;"{% else %}style="display: block;"{% endif %}>
+            <div class="card shadow-sm">
+                <div class="card-header bg-theme-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-edit mr-2"></i>Informations Personnelles</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'profile' %}">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nom d'utilisateur</label>
+                                <input type="text" class="form-control" value="{{ user.username }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" value="{{ user.email }}">
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Prénom</label>
+                                <input type="text" class="form-control" name="first_name" value="{{ user.first_name }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Nom</label>
+                                <input type="text" class="form-control" name="last_name" value="{{ user.last_name }}">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-theme-primary mt-3">
+                            <i class="fas fa-save mr-2"></i>Enregistrer
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Section -->
+        <div id="security-section" class="content-section" {% if show_security %}style="display: block;"{% else %}style="display: none;"{% endif %}>
+            <div class="card shadow-sm">
+                <div class="card-header bg-theme-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-key mr-2"></i>Changement de mot de passe</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'profile' %}" id="passwordChangeForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="password_change">
+                        
+                        <div class="mb-3">
+                            <div class="password-label-container">
+                                <label class="form-label">Mot de passe actuel</label>
+                                <i class="far fa-eye-slash password-toggle" onclick="togglePassword('old_password', this)"></i>
+                            </div>
+                            <input type="password" class="form-control {% if password_errors and password_errors.old_password %}is-invalid{% endif %}" 
+                                   name="old_password" id="old_password" required>
+                            {% if password_errors and password_errors.old_password %}
+                                <div class="invalid-feedback">{{ password_errors.old_password }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="password-label-container">
+                                <label class="form-label">Nouveau mot de passe</label>
+                                <i class="far fa-eye-slash password-toggle" onclick="togglePassword('new_password1', this)"></i>
+                            </div>
+                            <input type="password" class="form-control {% if password_errors and password_errors.new_password1 %}is-invalid{% endif %}" 
+                                   name="new_password1" id="new_password1" required>
+                            <small class="form-text text-muted">Minimum 8 caractères, contenant des lettres et des chiffres.</small>
+                            {% if password_errors and password_errors.new_password1 %}
+                                <div class="invalid-feedback">{{ password_errors.new_password1 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="password-label-container">
+                                <label class="form-label">Confirmation</label>
+                                <i class="far fa-eye-slash password-toggle" onclick="togglePassword('new_password2', this)"></i>
+                            </div>
+                            <input type="password" class="form-control {% if password_errors and password_errors.new_password2 %}is-invalid{% endif %}" 
+                                   name="new_password2" id="new_password2" required>
+                            {% if password_errors and password_errors.new_password2 %}
+                                <div class="invalid-feedback">{{ password_errors.new_password2 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-theme-primary">
+                            <i class="fas fa-sync-alt mr-2"></i>Mettre à jour
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+function showSection(section) {
+    // Masquer toutes les sections
+    document.querySelectorAll('.content-section').forEach(el => {
+        el.style.display = 'none';
+    });
+    
+    // Afficher la section demandée
+    document.getElementById(section + '-section').style.display = 'block';
+    
+    // Mettre à jour l'URL
+    if(section === 'security') {
+        if(!window.location.search.includes('security=true')) {
+            history.pushState(null, null, '?security=true#security');
+        }
+    } else {
+        // Pour le profil, on enlève le paramètre security
+        const newUrl = window.location.pathname;
+        history.pushState(null, null, newUrl);
+    }
+}
+
+function togglePassword(id, iconElement) {
+    const input = document.getElementById(id);
+    if (input.type === 'password') {
+        input.type = 'text';
+        iconElement.classList.remove('fa-eye-slash');
+        iconElement.classList.add('fa-eye');
+    } else {
+        input.type = 'password';
+        iconElement.classList.remove('fa-eye');
+        iconElement.classList.add('fa-eye-slash');
+    }
+}
+
+// Au chargement, vérifier l'ancre ou le contexte Django
+// Au chargement de la page
+// Au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const showSecurity = urlParams.get('security') === 'true';
+    
+    if(showSecurity || window.location.hash === '#security') {
+        showSection('security');
+    } else {
+        showSection('profile');
+    }
+});
+
+// Validation du formulaire de changement de mot de passe
+document.getElementById('passwordChangeForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Réinitialiser les erreurs
+    document.querySelectorAll('.is-invalid').forEach(el => {
+        el.classList.remove('is-invalid');
+    });
+    document.querySelectorAll('.invalid-feedback').forEach(el => {
+        el.style.display = 'none';
+    });
+    
+    // Validation côté client
+    const newPassword1 = document.getElementById('new_password1').value;
+    const newPassword2 = document.getElementById('new_password2').value;
+    
+    let isValid = true;
+    
+    if (newPassword1 !== newPassword2) {
+        document.getElementById('new_password2').classList.add('is-invalid');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.textContent = "Les mots de passe ne correspondent pas.";
+        document.getElementById('new_password2').parentNode.appendChild(errorDiv);
+        isValid = false;
+    }
+    
+    if (newPassword1.length < 8 || !/\d/.test(newPassword1) || !/[a-zA-Z]/.test(newPassword1)) {
+        document.getElementById('new_password1').classList.add('is-invalid');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.textContent = "Le mot de passe doit contenir au moins 8 caractères avec des lettres et des chiffres.";
+        document.getElementById('new_password1').parentNode.appendChild(errorDiv);
+        isValid = false;
+    }
+    
+    if (isValid) {
+        this.submit();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,537 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% load static %}
+{% block dashboard_content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0" style="color: #3B947F;">CMSS - Portail de Gestion</h1>
+            <h2 class="h4 mb-0 mt-2" style="color: #000000;">Gestion des gestionnaires</h2>
+        </div>
+        <div>
+            <button class="btn" style="background-color: #28C7A2; color: white;" data-bs-toggle="modal" data-bs-target="#ajouterGestionnaireModal">
+                <i class="fas fa-plus me-2"></i>Ajouter un gestionnaire
+            </button>
+        </div>
+    </div>
+
+    <!-- Barre de recherche -->
+    <div class="input-group mb-4" style="width: 300px; background-color: #f8f9fa; border-radius: 5px; border: 1px solid #ddd;">
+        <input type="text" class="form-control" placeholder="Rechercher..." id="searchInput" style="border: none; background: transparent;">
+        <span class="input-group-text" style="background: transparent; border: none;"><i class="fas fa-search" style="color: #28C7A2;"></i></span>
+    </div>
+
+    <!-- Tableau des gestionnaires -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="gestionnairesTable">
+                    <thead>
+                        <tr>
+                            <th>Nom d'utilisateur</th>
+                            <th>Email</th>
+                            <th>Nom</th>
+                            <th>Prénom</th>
+                            <th>Date d'ajout</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gestionnairesTableBody">
+                        <!-- Les données seront chargées dynamiquement ici -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-center">
+                <div class="spinner-border text-success" role="status" id="loadingSpinner">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'ajout de gestionnaire -->
+<div class="modal fade" id="ajouterGestionnaireModal" tabindex="-1" aria-labelledby="ajouterGestionnaireModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius: 10px; border: none;">
+            <div class="modal-header" style="background-color: #3B947F; color: white; border-radius: 10px 10px 0 0;">
+                <h5 class="modal-title" id="ajouterGestionnaireModalLabel">
+                    <i class="fas fa-user-plus me-2"></i>Ajouter un nouveau gestionnaire
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="gestionnaireForm" novalidate>
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Nom d'utilisateur <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="username" name="username" required 
+                                       pattern="[a-zA-Z][a-zA-Z0-9_]{3,}" 
+                                       title="Doit commencer par une lettre et contenir seulement des lettres, chiffres et underscores">
+                                <div class="form-text">Doit commencer par une lettre, 4 caractères minimum</div>
+                                <div class="invalid-feedback" id="usernameError"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                                <div class="invalid-feedback" id="emailError"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="nom" class="form-label">Nom <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nom" name="nom" required 
+                                       pattern="[A-Za-zÀ-ÿ\s\-']+" 
+                                       title="Le nom ne doit contenir que des lettres">
+                                <div class="invalid-feedback" id="nomError"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="prenom" class="form-label">Prénom <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="prenom" name="prenom" required 
+                                       pattern="[A-Za-zÀ-ÿ\s\-']+" 
+                                       title="Le prénom ne doit contenir que des lettres">
+                                <div class="invalid-feedback" id="prenomError"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Mot de passe <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" name="password" required 
+                                           minlength="8" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"
+                                           title="8 caractères minimum, avec au moins une majuscule, une minuscule et un chiffre">
+                                    <button type="button" class="btn btn-outline-secondary toggle-password">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">8 caractères minimum, avec majuscule, minuscule et chiffre</div>
+                                <div class="invalid-feedback" id="passwordError"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="confirmation_password" class="form-label">Confirmation <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="confirmation_password" name="confirmation_password" required>
+                                    <button type="button" class="btn btn-outline-secondary toggle-password">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="invalid-feedback" id="confirmation_passwordError"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #e9ecef;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelButton">
+                        <i class="fas fa-times me-2"></i>Fermer
+                    </button>
+                    <button type="submit" class="btn" style="background-color: #28C7A2; color: white;">
+                        <i class="fas fa-save me-2"></i>Ajouter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Message de confirmation -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="successToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header" style="background-color: #3B947F; color: white;">
+            <i class="fas fa-check-circle me-2"></i>
+            <strong class="me-auto">Succès</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            <i class="fas fa-check text-success me-2"></i> Gestionnaire ajouté avec succès!
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Fonction pour récupérer le token CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM chargé - initialisation des gestionnaires');
+        
+        // Charger les données des gestionnaires
+        loadGestionnaires();
+        
+        // Configuration de la recherche
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const searchText = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#gestionnairesTableBody tr');
+                
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchText) ? '' : 'none';
+                });
+            });
+        }
+        
+        // Soumission du formulaire
+        const form = document.getElementById('gestionnaireForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (validateForm()) {
+                    submitForm();
+                }
+            });
+        }
+        
+        // Bouton pour afficher/masquer les mots de passe
+        document.querySelectorAll('.toggle-password').forEach(button => {
+            button.addEventListener('click', function() {
+                const input = this.parentElement.querySelector('input');
+                const icon = this.querySelector('i');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            });
+        });
+        
+        // Réinitialiser le formulaire quand la modal se ferme
+        const modal = document.getElementById('ajouterGestionnaireModal');
+        if (modal) {
+            modal.addEventListener('hidden.bs.modal', function () {
+                resetForm();
+            });
+        }
+        
+        // Bouton annuler pour réinitialiser le formulaire
+        const cancelButton = document.getElementById('cancelButton');
+        if (cancelButton) {
+            cancelButton.addEventListener('click', resetForm);
+        }
+        
+        // Validation en temps réel
+        setupRealTimeValidation();
+    });
+    
+    function setupRealTimeValidation() {
+        const inputs = document.querySelectorAll('#gestionnaireForm input');
+        inputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                validateField(this);
+            });
+            input.addEventListener('input', function() {
+                clearFieldError(this);
+            });
+        });
+    }
+    
+    function validateField(field) {
+        clearFieldError(field);
+        
+        // Validation basique HTML5
+        if (!field.checkValidity()) {
+            showFieldError(field, field.validationMessage);
+            return false;
+        }
+        
+        // Validations spécifiques
+        switch(field.name) {
+            case 'username':
+                if (!/^[a-zA-Z][a-zA-Z0-9_]{3,}$/.test(field.value)) {
+                    showFieldError(field, "Doit commencer par une lettre et contenir au moins 4 caractères");
+                    return false;
+                }
+                break;
+            case 'nom':
+            case 'prenom':
+                if (!/^[A-Za-zÀ-ÿ\s\-']+$/.test(field.value)) {
+                    showFieldError(field, "Ne doit contenir que des lettres");
+                    return false;
+                }
+                break;
+            case 'password':
+                if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(field.value)) {
+                    showFieldError(field, "8 caractères minimum, avec majuscule, minuscule et chiffre");
+                    return false;
+                }
+                break;
+            case 'confirmation_password':
+                const password = document.getElementById('password').value;
+                if (field.value !== password) {
+                    showFieldError(field, "Les mots de passe ne correspondent pas");
+                    return false;
+                }
+                break;
+        }
+        
+        return true;
+    }
+    
+    function showFieldError(field, message) {
+        field.classList.add('is-invalid');
+        const errorDiv = document.getElementById(field.name + 'Error');
+        if (errorDiv) {
+            errorDiv.textContent = message;
+        }
+    }
+    
+    function clearFieldError(field) {
+        field.classList.remove('is-invalid');
+        const errorDiv = document.getElementById(field.name + 'Error');
+        if (errorDiv) {
+            errorDiv.textContent = '';
+        }
+    }
+    
+    function validateForm() {
+        let isValid = true;
+        const inputs = document.querySelectorAll('#gestionnaireForm input[required]');
+        
+        inputs.forEach(input => {
+            if (!validateField(input)) {
+                isValid = false;
+            }
+        });
+        
+        return isValid;
+    }
+    
+    function resetForm() {
+        const form = document.getElementById('gestionnaireForm');
+        if (form) {
+            form.reset();
+            // Réinitialiser les erreurs
+            document.querySelectorAll('.is-invalid').forEach(el => {
+                el.classList.remove('is-invalid');
+            });
+            document.querySelectorAll('.invalid-feedback').forEach(el => {
+                el.textContent = '';
+            });
+            // Remettre les yeux en mode masqué
+            document.querySelectorAll('.toggle-password i').forEach(icon => {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            });
+            document.querySelectorAll('input[type="text"]').forEach(input => {
+                input.type = 'password';
+            });
+        }
+    }
+    
+    function loadGestionnaires() {
+        const spinner = document.getElementById('loadingSpinner');
+        const tableBody = document.getElementById('gestionnairesTableBody');
+        
+        if (spinner) spinner.style.display = 'block';
+        if (tableBody) tableBody.innerHTML = '';
+        
+        fetch('/dashboard/agents/data/')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur réseau');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (spinner) spinner.style.display = 'none';
+                
+                if (data.gestionnaires && data.gestionnaires.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <i class="fas fa-users fa-2x mb-2" style="color: #ddd;"></i>
+                                <p>Aucun gestionnaire trouvé</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                if (data.gestionnaires && tableBody) {
+                    data.gestionnaires.forEach(gestionnaire => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${gestionnaire.username}</td>
+                            <td>${gestionnaire.email}</td>
+                            <td>${gestionnaire.nom}</td>
+                            <td>${gestionnaire.prenom}</td>
+                            <td>${gestionnaire.date_ajout}</td>
+                            <td>
+                                <span class="badge ${gestionnaire.est_actif ? 'bg-success' : 'bg-warning'}">
+                                    ${gestionnaire.est_actif ? 'Actif' : 'Inactif'}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                if (spinner) spinner.style.display = 'none';
+                if (tableBody) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center text-danger py-4">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                                <p>Erreur lors du chargement des données</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+    }
+    
+    function submitForm() {
+        const form = document.getElementById('gestionnaireForm');
+        if (!form) return;
+        
+        const formData = new FormData(form);
+        const submitButton = form.querySelector('button[type="submit"]');
+        const csrftoken = getCookie('csrftoken');
+        
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Ajout en cours...';
+        
+        fetch('/dashboard/agents/ajouter/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrftoken
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erreur réseau');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Réinitialiser le formulaire
+                resetForm();
+                
+                // Fermer le modal
+                const modalEl = document.getElementById('ajouterGestionnaireModal');
+                if (modalEl) {
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                }
+                
+                // Afficher le message de succès
+                const toastEl = document.getElementById('successToast');
+                if (toastEl) {
+                    const toast = new bootstrap.Toast(toastEl);
+                    toast.show();
+                }
+                
+                // Recharger les données
+                loadGestionnaires();
+            } else {
+                // Afficher les erreurs du serveur
+                for (const field in data.errors) {
+                    const input = document.getElementById(field);
+                    let errorDiv = document.getElementById(field + 'Error');
+                    
+                    if (input && errorDiv) {
+                        input.classList.add('is-invalid');
+                        errorDiv.textContent = data.errors[field];
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Une erreur est survenue lors de l\'ajout du gestionnaire');
+        })
+        .finally(() => {
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Ajouter';
+        });
+    }
+</script>
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(40, 199, 162, 0.1);
+    }
+
+    .btn-outline-primary {
+        border-color: #28C7A2;
+        color: #28C7A2;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #28C7A2;
+        border-color: #28C7A2;
+        color: white;
+    }
+    
+    #loadingSpinner {
+        display: none;
+    }
+    
+    .modal-content {
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .form-control:focus {
+        border-color: #28C7A2;
+        box-shadow: 0 0 0 0.2rem rgba(40, 199, 162, 0.25);
+    }
+    
+    .toggle-password {
+        border-left: none;
+    }
+    
+    .toggle-password:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .invalid-feedback {
+        display: block;
+    }
+    
+    .form-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}

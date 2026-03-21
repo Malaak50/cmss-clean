@@ -1,0 +1,49 @@
+<div class="modal fade" id="nomsIncoherentsModal" tabindex="-1" aria-labelledby="nomsIncoherentsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header text-white" style="background-color: #3B947F;">
+                <h5 class="modal-title" id="nomsIncoherentsModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Noms incohérents détectés
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Les noms suivants n'ont pas pu être associés à des membres existants dans la base de données.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr style="background-color: #3B947F; color: white;">
+                                <th>Nom</th>
+                                <th>Trimestre>
+                                <th>Date</th>
+                                <th>Montant</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if noms_incoherents %}
+                                {% for nom in noms_incoherents %}
+                                <tr>
+                                    <td>{{ nom.nom }}</td>
+                                    <td>{{ nom.trimestre }}</td>
+                                    <td>{{ nom.date }}</td>
+                                    <td>{{ nom.montant }} DH</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center">Aucun détail de nom incohérent disponible</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn text-white" style="background-color: #008B8D;" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>

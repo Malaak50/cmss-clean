@@ -1,0 +1,793 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-4">
+    <div class="d-flex flex-column mb-4">
+        <h2 style="color: #3B947F; font-weight: 700;">Gestion des Cotisations</h2>
+        <h3 style="color: #008B8D; margin-bottom: 0.5rem;">Importation et analyse des opérations bancaires</h3>
+    </div>
+    
+    <!-- Messages d'alerte -->
+    <div id="alert-container">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Étape 1: Importation du fichier Excel -->
+    <div class="card mb-4" style="border-color: #28C7A2; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <div class="card-header text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #3B947F 0%, #28C7A2 100%);">
+            <h5 class="mb-0"><i class="fas fa-file-import me-2"></i>Étape 1: Importation du fichier Excel</h5>
+            <span class="badge bg-light text-dark">Obligatoire</span>
+        </div>
+        <div class="card-body">
+            <form id="importForm" method="post" enctype="multipart/form-data" action="{% url 'gestion:import_cotisations' %}">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="fichier" class="form-label fw-bold">Fichier Excel</label>
+                    <input type="file" class="form-control" id="fichier" name="fichier" accept=".xlsx,.xls" required
+                           style="border-color: #28C7A2; border-radius: 8px;">
+                    <div class="form-text mt-2">
+                        <p class="fw-semibold">📋 Colonnes attendues:</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex align-items-center">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <span><strong>Nº pièce</strong> et variantes</span>
+                                    </li>
+                                    <li class="list-group-item d-flex align-items-center">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <span><strong>Montant en devise interne</strong></span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex align-items-center">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <span><strong>Texte/Description</strong></span>
+                                    </li>
+                                    <li class="list-group-item d-flex align-items-center">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <span><strong>Date pièce</strong></span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="text-muted mt-3"><small><i class="fas fa-info-circle me-1"></i> Les en-têtes de colonnes avec des sauts de ligne sont automatiquement corrigés.</small></p>
+                    </div>
+                </div>
+                <button type="submit" class="btn text-white fw-semibold py-2 px-4" style="background: linear-gradient(135deg, #008B8D 0%, #3B947F 100%); border-radius: 8px;">
+                    <i class="fas fa-upload me-2"></i>Importer et analyser
+                </button>
+            </form>
+        </div>
+    </div>
+  <!-- Section des erreurs d'importation -->
+   {% if import_erreurs %}
+   <div class="card mb-4 border-danger">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Erreurs d'importation ({{ erreurs_count }})</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Ligne</th>
+                        <th>Erreur</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for erreur in import_erreurs|slice:":10" %}
+                    <tr>
+                        <td class="fw-bold">{{ erreur.ligne }}</td>
+                        <td class="text-danger">{{ erreur.erreur }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if import_erreurs|length > 10 %}
+        <p class="text-muted mt-2">+ {{ import_erreurs|length|add:"-10" }} autres erreurs...</p>
+        {% endif %}
+    </div>
+   </div>
+   {% endif %}
+    <!-- Résultats de l'importation -->
+    {% if has_data_in_db %}
+    <!-- Étape 2: Résultats de l'analyse -->
+    <div class="card mb-4" style="border-color: #28C7A2; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <div class="card-header text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #3B947F 0%, #28C7A2 100%);">
+            <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Étape 2: Résultats de l'analyse</h5>
+            <span class="badge bg-light text-dark">{{ timestamp|date:"d/m/Y H:i" }}</span>
+        </div>
+        <div class="card-body">
+            <!-- Statistiques d'importation -->
+            <div class="row">
+                <!-- Lignes importées -->
+                <div class="col-xl-3 col-sm-6 mb-4">
+                    <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #28C7A2;">
+                        <div class="card-body text-center p-3">
+                            <div class="icon-shape bg-success text-white rounded-circle mx-auto mb-3" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-file-excel fa-2x"></i>
+                            </div>
+                            <h3 class="card-title fw-bold" style="color: #3B947F;">{{ imported_count }}</h3>
+                            <p class="card-text text-muted mb-1">Lignes importées</p>
+                            <small class="text-muted">Depuis le fichier Excel</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Doublons détectés -->
+                <div class="col-xl-3 col-sm-6 mb-4">
+                    <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #FFC107;">
+                        <div class="card-body text-center p-3">
+                            <div class="icon-shape bg-warning text-white rounded-circle mx-auto mb-3" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-copy fa-2x"></i>
+                            </div>
+                            <h3 class="card-title fw-bold" style="color: #3B947F;">{{ duplicates_count }}</h3>
+                            <p class="card-text text-muted mb-1">Doublons détectés</p>
+                            {% if duplicates_count > 0 %}
+                            <button type="button" class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#doublonsModal">
+                                <i class="fas fa-eye me-1"></i>Voir détails
+                            </button>
+                            {% else %}
+                            <span class="badge bg-success">Aucun doublon</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Noms incohérents -->
+                <div class="col-xl-3 col-sm-6 mb-4">
+                    <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #DC3545;">
+                        <div class="card-body text-center p-3">
+                            <div class="icon-shape bg-danger text-white rounded-circle mx-auto mb-3" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                            </div>
+                            <h3 class="card-title fw-bold" style="color: #3B947F;">{{ incoherent_names_count }}</h3>
+                            <p class="card-text text-muted mb-1">Noms incohérents</p>
+                            {% if incoherent_names_count > 0 %}
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#nomsIncoherentsModal">
+                                <i class="fas fa-eye me-1"></i>Voir détails
+                            </button>
+                            {% else %}
+                            <span class="badge bg-success">Aucun nom incohérent</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personnes réglées -->
+                <div class="col-xl-3 col-sm-6 mb-4">
+                    <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #198754;">
+                        <div class="card-body text-center p-3">
+                            <div class="icon-shape bg-info text-white rounded-circle mx-auto mb-3" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-users fa-2x"></i>
+                            </div>
+                            <h3 class="card-title fw-bold" style="color: #3B947F;">{{ reglees_count }}</h3>
+                            <p class="card-text text-muted mb-1">Personnes réglées</p>
+                            <a href="#regles-section" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-arrow-down me-1"></i>Voir liste
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Étape 3: Classification des résultats -->
+    <div class="card mb-4" style="border-color: #28C7A2; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <div class="card-header text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #3B947F 0%, #28C7A2 100%);">
+            <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Étape 3: Classification des résultats</h5>
+            <span class="badge bg-light text-dark">Analyse complète</span>
+        </div>
+        <div class="card-body">
+            <!-- Réglés -->
+<!-- Remplacer la section des réglés par ce code -->
+<div class="row mb-4" id="regles-section">
+    <div class="col-12">
+        <div class="card h-100 border-success shadow-sm">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-check-circle me-2"></i>Réglés</h6>
+                <span class="badge bg-light text-success">{{ reglees_count }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 300px;">
+                    <table class="table table-hover align-items-center mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Nom</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Trimestre</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Montant</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Type</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Détails</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for regle in reglees|slice:":10" %}
+                            <tr class="regle-row" 
+                                data-nom="{{ regle.nom }}"
+                                data-prenom="{{ regle.prenom }}"
+                                data-num-secu="{{ regle.num_secu }}"
+                                data-trimestre="{{ regle.trimestre|default:'N/A' }}"
+                                data-montant="{{ regle.montant }}"
+                                data-type="{{ regle.type }}"
+                                data-detail="{{ regle.detail|default:'Aucun détail' }}"
+                                style="cursor: pointer;">
+                                <td>
+                                    <div class="d-flex px-2 py-1">
+                                        <div class="d-flex flex-column justify-content-center">
+                                            <h6 class="mb-0 text-sm">{{ regle.nom }} {{ regle.prenom }}</h6>
+                                            <p class="text-xs text-secondary mb-0">{{ regle.num_secu }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success bg-opacity-10 text-success">
+                                        {{ regle.trimestre|default:"N/A" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold">{{ regle.montant }} DH</span>
+                                </td>
+                                <td>
+                                    {% if regle.type == 'CMSS_EXACT' %}
+                                        <span class="badge bg-info">CMSS Exact</span>
+                                    {% elif regle.type == 'CMCAS_EXACT' %}
+                                        <span class="badge bg-primary">CMCAS Exact</span>
+                                    {% elif regle.type == 'CMSS_CMCAS' %}
+                                        <span class="badge bg-success">CMSS+CMCAS</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{{ regle.type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <p class="text-xs text-muted mb-0">{{ regle.detail|truncatechars:20|default:"Aucun détail" }}</p>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">{{ regle.statut|default:"Réglé" }}</span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center p-4">
+                                    <i class="fas fa-info-circle text-muted fa-2x mb-2"></i>
+                                    <p class="text-sm text-muted">Aucun retraité réglé</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if reglees_count > 10 %}
+            <div class="card-footer text-center bg-light">
+                <!--<a href="#" class="btn btn-sm btn-success">
+                    <i class="fas fa-list me-1"></i>Voir tous ({{ reglees_count }})
+                </a>-->
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+            <!-- Non réglés -->
+            <!-- Non réglés -->
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card h-100 border-warning shadow-sm">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-clock me-2"></i>Non réglés (Aucune cotisation)</h6>
+                 <span class="badge bg-light text-warning">{{ non_reglees_count }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 300px;">
+                    <table class="table table-hover align-items-center mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Nom</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Mois rattachement</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Trimestres manquants</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Montant total manquant</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Raison</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for non_regle in non_reglees|slice:":10" %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex px-2 py-1">
+                                        <div class="d-flex flex-column justify-content-center">
+                                            <h6 class="mb-0 text-sm">{{ non_regle.nom }} {{ non_regle.prenom }}</h6>
+                                            <p class="text-xs text-secondary mb-0">{{ non_regle.num_secu }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning bg-opacity-10 text-warning">{{ non_regle.mois_rattachement }}</span>
+                                </td>
+                                <td>
+                                    {% if non_regle.trimestres_manquants %}
+                                        {% for trimestre in non_regle.trimestres_manquants %}
+                                            <span class="badge bg-danger mb-1">{{ trimestre }}</span><br>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">Aucun trimestre manquant</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-danger">
+                                        {{ non_regle.montant_total_manquant|default:"0.00" }} DH
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning">{{ non_regle.raison|truncatechars:20 }}</span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center p-4">
+                                    <i class="fas fa-info-circle text-muted fa-2x mb-2"></i>
+                                    <p class="text-sm text-muted">Aucun retraité non réglé</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if non_reglees|length > 10 %}
+            <div class="card-footer text-center bg-light">
+                <!--<a href="#" class="btn btn-sm btn-warning">
+                    <i class="fas fa-list me-1"></i>Voir tous ({{ non_reglees|length }})
+                </a>-->
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+            <!-- Manquants -->
+            <!-- Manquants -->
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card h-100 border-danger shadow-sm">
+            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Manquants</h6>
+                <span class="badge bg-light text-danger">{{ manquants_count }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 300px;">
+                    <table class="table table-hover align-items-center mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Nom</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Trimestre concerné</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Trimestres manquants</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Montant manquant</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Type</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for manquant in manquants|slice:":10" %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex px-2 py-1">
+                                        <div class="d-flex flex-column justify-content-center">
+                                            <h6 class="mb-0 text-sm">{{ manquant.nom }} {{ manquant.prenom }}</h6>
+                                            <p class="text-xs text-secondary mb-0">{{ manquant.num_secu }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-danger bg-opacity-10 text-danger">
+                                        {{ manquant.trimestre|default:"N/A" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if manquant.trimestres_manquants %}
+                                        {% for trimestre in manquant.trimestres_manquants %}
+                                            <span class="badge bg-warning mb-1">{{ trimestre }}</span><br>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">Aucun détail</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-danger">
+                                       {{ manquant.montant_manquant|default:"0.00" }} DH
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-danger">{{ manquant.type }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if manquant.statut == 'en_retard' %}warning{% else %}secondary{% endif %}">
+                                        {{ manquant.statut|default:"N/A" }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center p-4">
+                                    <i class="fas fa-info-circle text-muted fa-2x mb-2"></i>
+                                    <p class="text-sm text-muted">Aucun manquant détecté</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if manquants_count > 10 %}
+            <div class="card-footer text-center bg-light">
+                <!--<a href="#" class="btn btn-sm btn-danger">
+                    <i class="fas fa-list me-1"></i>Voir tous ({{ manquants_count }})
+                </a>-->
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+            <!-- Résumé des virements manquants -->
+            <div class="row mt-4">
+                <div class="col-md-4 text-center">
+                    <div class="border-end pe-3">
+                        <h4 class="fw-bold text-warning">{{ virements_en_retard_count }}</h4>
+                        <p class="text-muted mb-0">En retard ({{ current_year }})</p>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="border-end pe-3">
+                        <h4 class="fw-bold text-danger">{{ virements_non_recus_count }}</h4>
+                        <p class="text-muted mb-0">Non reçus (années précédentes)</p>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <h4 class="fw-bold text-info">{{ virements_total_montant|floatformat:2 }} DH</h4>
+                    <p class="text-muted mb-0">Montant total manquant</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Aucune donnée d'import -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card text-center py-5" style="background-color: #f8f9fa;">
+                <div class="card-body">
+                    <i class="fas fa-file-import fa-4x text-muted mb-4"></i>
+                    <h4 class="text-muted mb-3">Aucune donnée d'importation</h4>
+                    <p class="text-muted mb-4">Importez un fichier Excel pour commencer l'analyse des cotisations</p>
+                    
+                    <!-- Bouton pour forcer le rafraîchissement des données -->
+                    {% if Banque.objects.exists or Cotisation.objects.exists %}
+                    <form method="post" action="{% url 'refresh_cotisations' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-info">
+                            <i class="fas fa-sync-alt me-2"></i>Rafraîchir les données existantes
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal des doublons -->
+<div class="modal fade" id="doublonsModal" tabindex="-1" role="dialog" aria-labelledby="doublonsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title" id="doublonsModalLabel">
+                    <i class="fas fa-copy me-2"></i>Détails des doublons ({{ duplicates_count }})
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-warning">
+                            <tr>
+                                <th>Référence</th>
+                                <th>Date</th>
+                                <th>Montant</th>
+                                <th>Description</th>
+                                <th>Nom BD</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doublon in doublons %}
+                            <tr>
+                                <td><strong>{{ doublon.reference }}</strong></td>
+                                <td>{{ doublon.date|date:"d/m/Y" }}</td>
+                                <td class="fw-bold">{{ doublon.montant }} DH</td>
+                                <td>{{ doublon.description }}</td>
+                                <td>{{ doublon.nom_bd|default:"N/A" }}</td>
+                                <td>
+                                    <span class="badge bg-{% if doublon.type == 'doublon_fichier' %}warning{% else %}danger{% endif %}">
+                                       {{ doublon.type }}
+                                   </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal des noms incohérents -->
+<div class="modal fade" id="nomsIncoherentsModal" tabindex="-1" role="dialog" aria-labelledby="nomsIncoherentsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="nomsIncoherentsModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Noms incohérents ({{ incoherent_names_count }})
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-danger">
+                            <tr>
+                                <th>Nom dans le fichier</th>
+                                <th>Date</th>
+                                <th>Montant</th>
+                                <th>Référence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for nom in noms_incoherents %}
+                            <tr>
+                                <td><strong>{{ nom.nom }}</strong></td>
+                                <td>{{ nom.date_operation|date:"d/m/Y" }}</td>
+                                <td class="fw-bold">{{ nom.montant }} DH</td>
+                                <td>{{ nom.n_piece }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal des détails pour les réglés -->
+<!-- Modal des détails pour les réglés -->
+<div class="modal fade" id="regleDetailsModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>Détails du paiement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="regleDetailsContent">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Informations du retraité</h6>
+                        <p><strong>Nom:</strong> <span id="detail-nom"></span></p>
+                        <p><strong>Prénom:</strong> <span id="detail-prenom"></span></p>
+                        <p><strong>N° Sécurité Sociale:</strong> <span id="detail-num-secu"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Détails du paiement</h6>
+                        <p><strong>Trimestre:</strong> <span id="detail-trimestre"></span></p>
+                        <p><strong>Montant:</strong> <span id="detail-montant"></span> DH</p>
+                        <p><strong>Type:</strong> <span id="detail-type"></span></p>
+                        <p><strong>Statut:</strong> <span id="detail-statut"></span></p>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Détails supplémentaires</h6>
+                        <p class="border p-3 rounded" id="detail-details"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Gestionnaire pour les clics sur les lignes des réglés
+document.addEventListener('DOMContentLoaded', function() {
+    const regleRows = document.querySelectorAll('.regle-row');
+    
+    regleRows.forEach(row => {
+        row.addEventListener('click', function() {
+            const nom = this.getAttribute('data-nom');
+            const prenom = this.getAttribute('data-prenom');
+            const numSecu = this.getAttribute('data-num-secu');
+            const trimestre = this.getAttribute('data-trimestre');
+            const montant = this.getAttribute('data-montant');
+            const type = this.getAttribute('data-type');
+            const detail = this.getAttribute('data-detail');
+            
+            // Mettre à jour le modal avec les données
+            document.getElementById('detail-nom').textContent = nom;
+            document.getElementById('detail-prenom').textContent = prenom;
+            document.getElementById('detail-num-secu').textContent = numSecu;
+            document.getElementById('detail-trimestre').textContent = trimestre;
+            document.getElementById('detail-montant').textContent = montant;
+            document.getElementById('detail-details').textContent = detail;
+            
+            // Formater le type pour l'affichage
+            let typeLabel = type;
+            if (type === 'CMSS_EXACT') typeLabel = 'CMSS Exact';
+            else if (type === 'CMCAS_EXACT') typeLabel = 'CMCAS Exact';
+            else if (type === 'CMSS_CMCAS') typeLabel = 'CMSS + CMCAS';
+            else typeLabel = type;
+            
+            document.getElementById('detail-type').textContent = typeLabel;
+            document.getElementById('detail-statut').textContent = 'Réglé';
+            
+            // Afficher le modal
+            const modal = new bootstrap.Modal(document.getElementById('regleDetailsModal'));
+            modal.show();
+        });
+    });
+
+    // Fonction pour afficher les alertes
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        const alertContainer = document.getElementById('alert-container');
+        if (alertContainer) {
+            alertContainer.appendChild(alertDiv);
+        }
+        
+        // Supprimer automatiquement l'alerte après 5 secondes
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                const bsAlert = new bootstrap.Alert(alertDiv);
+                bsAlert.close();
+            }
+        }, 5000);
+    }
+
+    // Gestion de l'importation avec gestion des erreurs améliorée
+    const importForm = document.getElementById('importForm');
+    
+    if (importForm) {
+        importForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const importButton = this.querySelector('button[type="submit"]');
+            const originalText = importButton.innerHTML;
+            
+            // Afficher un indicateur de chargement
+            importButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Import en cours...';
+            importButton.disabled = true;
+            
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                const contentType = response.headers.get('content-type');
+                
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                } else {
+                    return response.text().then(text => {
+                        throw new Error('Réponse serveur non-JSON reçue');
+                    });
+                }
+            })
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    // Recharger la page après un court délai pour afficher les résultats
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('Erreur lors de l\'importation: ' + data.error, 'danger');
+                    importButton.innerHTML = originalText;
+                    importButton.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Une erreur s\'est produite lors de l\'importation. Veuillez réessayer.', 'danger');
+                importButton.innerHTML = originalText;
+                importButton.disabled = false;
+                
+                // En cas d'erreur, recharger la page pour voir les messages Django
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            });
+        });
+    }
+
+    // Animation pour les cartes statistiques
+    const statCards = document.querySelectorAll('.card.border-0.shadow-sm');
+    statCards.forEach(card => {
+        card.addEventListener('mouseenter', () => {
+            card.style.transform = 'translateY(-5px)';
+            card.style.transition = 'transform 0.3s ease';
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
+
+<style>
+    .regle-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.regle-row:hover {
+    background-color: rgba(40, 199, 162, 0.1) !important;
+}
+
+.table-hover .regle-row:hover td {
+    background-color: rgba(40, 199, 162, 0.1) !important;
+}
+.cursor-pointer {
+    cursor: pointer;
+}
+.cursor-pointer:hover {
+    background-color: #f8f9fa;
+}
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+}
+.icon-shape {
+    transition: transform 0.3s ease;
+}
+.card:hover .icon-shape {
+    transform: scale(1.1);
+}
+</style>
+{% endblock %}

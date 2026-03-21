@@ -1,0 +1,412 @@
+<style>
+/* Styles personnalisés pour la modal avec votre thème */
+#detailsRetraiteModal .modal-header {
+    background-color: #3A6158 !important;
+    border-bottom: 1px solid #3B947F;
+}
+
+#detailsRetraiteModal .modal-content {
+    border: 1px solid #3B947F;
+    border-radius: 0.5rem;
+}
+
+#detailsRetraiteModal .card-header {
+    background-color: #3B947F !important;
+    color: white !important;
+    border-bottom: 1px solid #28C7A2;
+}
+
+#detailsRetraiteModal .card {
+    border: 1px solid #3B947F;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(58, 97, 88, 0.1);
+}
+
+#detailsRetraiteModal .bg-info {
+    background-color: #3B947F !important;
+}
+
+#detailsRetraiteModal .bg-warning {
+    background-color: #28C7A2 !important;
+    color: #3A6158 !important;
+    border-bottom: 1px solid #3B947F;
+}
+
+#detailsRetraiteModal .btn-secondary {
+    background-color: #3A6158;
+    border-color: #3A6158;
+}
+
+#detailsRetraiteModal .btn-secondary:hover {
+    background-color: #3B947F;
+    border-color: #3B947F;
+}
+
+#detailsRetraiteModal .table {
+    color: #3A6158;
+}
+
+#detailsRetraiteModal .table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(59, 148, 127, 0.1);
+}
+
+#detailsRetraiteModal .table-hover tbody tr:hover {
+    background-color: rgba(40, 199, 162, 0.2);
+}
+
+#detailsRetraiteModal strong {
+    color: #3A6158;
+}
+
+#detailsRetraiteModal .modal-body {
+    color: #3A6158;
+}
+
+#detailsRetraiteModal .btn-close-white {
+    filter: invert(1);
+}
+</style>
+
+<div class="modal fade" id="detailsRetraiteModal" tabindex="-1" aria-labelledby="detailsRetraiteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="detailsRetraiteModalLabel">Détails Retraité</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header bg-info text-white d-flex align-items-center">
+                                <i class="fas fa-user-circle me-2"></i>
+                                <h6 class="mb-0">Informations personnelles</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <strong>Nom complet:</strong>
+                                    <span id="retraite-nom-complet"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Numéro sécurité sociale:</strong>
+                                    <span id="retraite-num-secu"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>ID Num Personne:</strong>
+                                    <span id="retraite-id-num-personne">
+                                      <!-- La valeur sera injectée par JavaScript --> </span>      
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Date de naissance:</strong>
+                                    <span id="retraite-date-naissance"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Qualité personne:</strong>
+                                    <span id="retraite-qualite"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header bg-info text-white d-flex align-items-center">
+                                <i class="fas fa-briefcase me-2"></i>
+                                <h6 class="mb-0">Informations professionnelles</h6>
+                            </div>
+                            <div class="card-body">
+                               <div class="mb-2">
+                                    <strong>Nom agence:</strong>
+                                    <span id="retraite-nom-agence"></span>
+                               </div>
+                                <div class="mb-2">
+                                    <strong>Mois de rattachement:</strong>
+                                    <span id="retraite-mois-rattachement"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Pension CNSS:</strong>
+                                    <span id="retraite-pension-cnss"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Pension CIMR:</strong>
+                                    <span id="retraite-pension-cimr"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>CMSS Trimestriel:</strong>
+                                    <span id="retraite-cmss-trim"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>CMCAS Trimestriel:</strong>
+                                    <span id="retraite-cmcas-trim"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+
+                <!-- Historique des TMs -->
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h6>Historique des TMs</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Montant</th>
+                                        <th>Statut</th>
+                                        
+                                    </tr>
+                                </thead>
+                                <tbody id="historique-tms">
+                                    
+                                </tbody>
+                                
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Historique des arriérés -->
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h6>Historique des arriérés</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Nombre de mois </th>
+                                        <th>Montant CMSS/CMCAS</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historique-arrieres">
+                                    <!-- Les données seront ajoutées dynamiquement -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// Fonction pour afficher les détails dans la modal
+function showDetailsRetraite(retraiteId, retraiteNumSecu) {
+    fetch(`/retraite/${retraiteNumSecu}/details/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erreur réseau');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Informations personnelles
+                document.getElementById('retraite-nom-complet').textContent = data.retraite.nom_complet;
+                document.getElementById('retraite-num-secu').textContent = data.retraite.num_secu;
+                document.getElementById('retraite-id-num-personne').textContent = data.retraite.id_num_personne || 'Non spécifié';
+                document.getElementById('retraite-date-naissance').textContent = data.retraite.date_naissance;
+                document.getElementById('retraite-qualite').textContent = data.retraite.qualite_personne;
+
+                // Informations professionnelles
+                document.getElementById('retraite-nom-agence').textContent = data.retraite.nom_agence || 'Non spécifié';
+                document.getElementById('retraite-mois-rattachement').textContent = data.retraite.mois_rattachement || 'Non spécifié';
+                document.getElementById('retraite-pension-cnss').textContent = formatMoney(data.retraite.pension_cnss);
+                document.getElementById('retraite-pension-cimr').textContent = formatMoney(data.retraite.pension_cimr);
+                document.getElementById('retraite-cmss-trim').textContent = formatMoney(data.calculs.trim_cmss);
+                document.getElementById('retraite-cmcas-trim').textContent = formatMoney(data.calculs.trim_cmcas);
+
+                function renderTmHistory(tms) {
+    const tbody = document.getElementById('historique-tms');
+    if (!tbody) return;
+    
+    tbody.innerHTML = tms.map(tm => `
+        <tr>
+            <td>${tm.date_tm || tm.date}</td>
+            <td>${tm.montant_total || tm.montant}</td>
+            <td>${tm.statut}</td>
+        </tr>
+    `).join('') || '<tr><td colspan="3" class="text-center">Aucun TM trouvé</td></tr>';
+}
+
+function renderArrieresHistory(arrieres) {
+    const tbody = document.getElementById('historique-arrieres');
+    if (!tbody) return;
+    
+    tbody.innerHTML = arrieres.map(arr => {
+        // Valeur par défaut si nombre_de_mois est null/undefined
+        const nbMois = (arr.nombre_de_mois !== undefined && arr.nombre_de_mois !== null) 
+                      ? arr.nombre_de_mois 
+                      : 'N/A';
+        
+        // Gestion spécifique de l'affichage des montants
+        let montantDisplay = 'N/A';
+        if (arr.type_arriere === 'CMSS' && arr.montant_cmss) {
+            montantDisplay = arr.montant_cmss;
+        } else if (arr.type_arriere === 'CMCAS' && arr.montant_cmcas) {
+            montantDisplay = arr.montant_cmcas;
+        } else if (arr.type_arriere === 'LES_DEUX') {
+            montantDisplay = `${arr.montant_cmss || '0.00'} / ${arr.montant_cmcas || '0.00'}`;
+        }
+        
+        return `
+        <tr>
+            <td>${arr.date_arriere || 'N/A'}</td>
+            <td>${arr.type_arriere || arr.type || 'N/A'}</td>
+            <td>${nbMois}</td>
+            <td>${montantDisplay}</td>
+            <td>${arr.statut || 'N/A'}</td>
+        </tr>
+        `;
+    }).join('') || '<tr><td colspan="5" class="text-center">Aucun arriéré trouvé</td></tr>';
+}
+                // Stocker l'ID et num_secu dans la modal pour usage ultérieur
+                const modal = document.getElementById('detailsRetraiteModal');
+                modal.dataset.retraiteId = retraiteId;
+                modal.dataset.retraiteNumSecu = retraiteNumSecu;
+
+                // Afficher la modal
+                const modalInstance = new bootstrap.Modal(modal);
+                modalInstance.show();
+            } else {
+                throw new Error(data.error || 'Erreur lors du chargement des détails');
+            }
+        })
+        .catch(error => {
+    console.error('Erreur:', error);
+    showErrorToast(formatError(error)); // Au lieu de error.message
+     });
+}
+
+// Fonction pour afficher l'historique des TMs
+function renderTmHistory(tms) {
+    let tmsHtml = '';
+    if (tms && tms.length > 0) {
+        tms.forEach(tm => {
+            tmsHtml += `
+                <tr data-tm-id="${tm.id}">
+                    <td>${tm.date || 'N/A'}</td>
+                    <td>${tm.mois || 'N/A'}</td>
+                    <td>${formatMoney(tm.montant)}</td>
+                    <td>${tm.statut || 'N/A'}</td>
+                </tr>
+            `;
+        });
+    } else {
+        tmsHtml = '<tr><td colspan="4" class="text-center">Aucun TM enregistré</td></tr>';
+    }
+    document.getElementById('historique-tms').innerHTML = tmsHtml;
+}
+
+// Fonction pour afficher l'historique des arriérés
+function renderArrieresHistory(arrieres) {
+    const tbody = document.getElementById('historique-arrieres');
+    if (!tbody) return;
+    
+    tbody.innerHTML = arrieres.map(arr => {
+        const nbMois = arr.nombre_de_mois ?? 'N/A';
+        const type = arr.type_arriere || 'N/A';
+        
+        // Conversion en nombres
+        const cmss = parseFloat(arr.montant_cmss) || 0;
+        const cmcas = parseFloat(arr.montant_cmcas) || 0;
+        
+        let montant = 'N/A';
+        
+        if (type === 'CMSS') {
+            montant = cmss > 0 ? cmss.toFixed(2) : 'N/A';
+        }
+        else if (type === 'CMCAS') {
+            montant = cmcas > 0 ? cmcas.toFixed(2) : 'N/A';
+        }
+        else if (type === 'LES_DEUX') {
+            const parts = [];
+            if (cmss > 0) parts.push(cmss.toFixed(2));
+            if (cmcas > 0) parts.push(cmcas.toFixed(2));
+            montant = parts.length > 0 ? parts.join(' / ') : 'N/A';
+        }
+        
+        return `
+        <tr>
+            <td>${arr.date_arriere || 'N/A'}</td>
+            <td>${type}</td>
+            <td>${nbMois}</td>
+            <td>${montant}</td>
+            <td>${arr.statut || 'N/A'}</td>
+        </tr>`;
+        
+    }).join('') || '<tr><td colspan="5">Aucun arriéré</td></tr>';
+}
+// Fonction utilitaire pour formater les montants
+function formatMoney(amount) {
+    if (!amount || isNaN(amount)) return '0,00';
+    return parseFloat(amount)
+        .toFixed(2)
+        .replace('.', ',')
+        .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+// Fonction pour afficher les erreurs
+function showErrorToast(message) {
+    const toastContainer = document.getElementById('toast-container');
+    if (toastContainer) {
+        const toastEl = document.createElement('div');
+        toastEl.className = 'toast align-items-center text-white bg-danger border-0';
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
+        
+        toastEl.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toastEl);
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+        
+        // Suppression automatique après 5 secondes
+        setTimeout(() => {
+            toastEl.remove();
+        }, 5000);
+    } else {
+        alert(message); // Fallback si le container toast n'existe pas
+    }
+}
+
+// Écouteur d'événement pour le bouton Détails
+document.addEventListener('click', function(e) {
+    const detailsBtn = e.target.closest('.details-modal-btn');
+    if (detailsBtn) {
+        const retraiteId = detailsBtn.dataset.retraiteId;
+        const retraiteNumSecu = detailsBtn.dataset.retraiteNumSecu;
+        
+        if (retraiteId && retraiteNumSecu) {
+            showDetailsRetraite(retraiteId, retraiteNumSecu);
+        } 
+    }
+});
+function formatError(error) {
+    if (typeof error === 'string') return error;
+    if (error.message) return error.message;
+    if (Array.isArray(error)) return error.join(', ');
+    return JSON.stringify(error);
+}
+</script>

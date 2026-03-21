@@ -1,0 +1,153 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .sidebar {
+            width: 250px;
+            background-color: #E6F2EF;
+            height: 100vh;
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #dee2e6;
+        }
+        .main-content {
+            margin-left: 250px;
+            background-color: #F8F9FA;
+            min-height: 100vh;
+        }
+        .nav-link {
+            color: #333 !important;
+            padding: 12px 20px;
+            border-radius: 0;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: #CCE7E0;
+        }
+        .nav-link i {
+            width: 24px;
+            text-align: center;
+            margin-right: 10px;
+        }
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+        .logout-btn {
+            width: 100%;
+            background-color: transparent;
+            border: 1px solid #333;
+            color: #333;
+            transition: background-color 0.2s ease;
+        }
+        .logout-btn:hover {
+            background-color: #CCE7E0;
+        }
+        .logo-container {
+            padding: 20px 15px;
+            text-align: center;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .logo-img {
+            width: 140px;
+            height: 140px;
+            margin-bottom: 10px;
+            object-fit: contain;
+        }
+        .system-name {
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 0;
+        }
+        .system-subtitle {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-container">
+                <img src="{% static 'images/logo.png' %}" alt="Logo" class="logo-img">
+            </div>
+            <!-- Menu -->
+            <ul class="nav flex-column mt-4">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'accueil' %}active{% endif %}" href="{% url 'gestion:accueil' %}">
+                        <i class="bi bi-house"></i>
+                        Accueil
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'patients' %}active{% endif %}" href="{% url 'patients' %}">
+                        <i class="bi bi-people"></i>
+                        Patients
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'cotisations' %}active{% endif %}" href="{% url 'cotisations' %}">
+                        <i class="bi bi-calculator"></i>
+                        Cotisations
+                    </a>
+                </li>
+                 <!-- Afficher "Agents" seulement pour les superutilisateurs -->
+                {% if request.user.is_superuser %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'agents' %}active{% endif %}" href="{% url 'agents' %}">
+                        <i class="bi bi-people"></i>
+                        Agents
+                    </a>
+                </li>
+                {% endif %}  
+
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'profile' %}">
+                        <i class="bi bi-person"></i>
+                        Mon Profil
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Déconnexion -->
+            <div class="sidebar-footer">
+                <form action="{% url 'logout' %}" method="post" class="mt-3">
+                    {% csrf_token %}
+                    <button type="submit" class="btn logout-btn d-flex align-items-center">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="ms-2">Se Déconnecter</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Contenu principal -->
+        <main class="main-content flex-grow-1 p-4">
+            {% block dashboard_content %}
+            {% endblock %}
+        </main>
+    </div>
+
+    <!-- Scripts JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

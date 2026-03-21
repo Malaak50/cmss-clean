@@ -1,0 +1,742 @@
+{% extends "dashboard/base_dashboard.html" %}
+
+{% load static %}
+{% load humanize %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-4">
+    <div class="d-flex flex-column mb-4">
+        <h2 style="color: #3B947F; font-weight: 700;">CMSS - Portail de Gestion</h2>
+        <h3 style="color: #008B8D; margin-bottom: 0.5rem;">Tableau de bord </h3>
+    </div>
+
+    <!-- Filtre par année -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-end align-items-center">
+            <span class="me-2">Filtrer par année:</span>
+            <select class="form-select w-auto" id="yearSelector" style="border-color: #28C7A2;">
+                {% for year in years %}
+                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</div>
+
+    <!-- Synthèse Annuelle -->
+    <div class="row g-4 mb-4">
+        <h2 style="color: #008B8D;">📊 Synthèse Annuelle : {{ selected_year }}</h2>
+        <div class="col-md-6">
+            <div class="bg-white shadow-sm rounded p-4 text-center position-relative">
+                <h6 class="text-muted">Total Cotisations {{ selected_year }}</h6>
+                <h2 class="fw-bold" id="total-remboursements">{{ total_remboursements|floatformat:2|intcomma }} DH</h2>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="bg-white shadow-sm rounded p-4 text-center position-relative">
+                <h6 class="text-muted">Cotisation Partielles  CMSS/CMCAS {{ selected_year }}</h6>
+                <h2 class="fw-bold" id="total-arrieres">{{ arrieres|floatformat:2|intcomma }} DH</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Statistiques Trimestrielles -->
+        <div class="col-lg-8">
+            <h3 style="color: #008B8D; margin-bottom: 1rem;">Statistiques Trimestrielles {{ selected_year }}</h3>
+            <div class="bg-white shadow-sm rounded p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Montants totaux par trimestre</span>
+                </div>
+                
+                <!-- Graphique -->
+                <canvas id="statsChart" height="150"></canvas>
+                
+                <!-- Résumé des totaux -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card mt-3 border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0"><i class="fas fa-hospital"></i> Total CMSS {{ selected_year }}</h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <h4 class="text-success fw-bold" id="total-cmss-annuel">
+                                    {{ stats_data.total_cmss_annuel|default:0|floatformat:2|intcomma }} DH
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mt-3 border-info">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="fas fa-clinic-medical"></i> Total CMCAS {{ selected_year }}</h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <h4 class="text-info fw-bold" id="total-cmcas-annuel">
+                                    {{ stats_data.total_cmcas_annuel|default:0|floatformat:2|intcomma }} DH
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Détails du trimestre sélectionné -->
+                <div class="card mt-4 border-primary" id="trimestre-details" style="display: none;">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-info-circle"></i> Détails du trimestre</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold">Trimestre:</span>
+                                    <span id="detail-trimestre-nom" class="badge bg-primary"></span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold">CMSS:</span>
+                                    <span id="detail-cmss" class="text-success fw-bold"></span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold">CMCAS:</span>
+                                    <span id="detail-cmcas" class="text-info fw-bold"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold">Total trimestre:</span>
+                                    <span id="detail-total" class="text-primary fw-bold fs-5"></span>
+                                </div>
+                                <div class="progress mt-2" style="height: 10px;">
+                                    <div id="progress-cmss" class="progress-bar bg-success" role="progressbar"></div>
+                                    <div id="progress-cmcas" class="progress-bar bg-info" role="progressbar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertes & Historique -->
+        <div class="col-lg-4">
+            <h4 style="color: #008B8D; margin-bottom: 1rem;">Alertes {{ selected_year }}</h4>
+
+            <div class="bg-white shadow-sm rounded p-4 mb-4 position-relative" style="border: 1px solid #E6F2EF; cursor: pointer;" onclick="openNomsIncoherents()">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-danger rounded-circle me-2" style="width:12px; height:12px;"></span>
+                    <h4 style="color: #000000;">🔴 Noms Incohérents : <span id="alert-noms">{{ alertes_noms_incoherents }}</span> cas</h4>
+                </div>
+            </div> 
+            
+            <div class="bg-white shadow-sm rounded p-4 mb-4 position-relative" style="border: 1px solid #E6F2EF; cursor: pointer;" onclick="openVirementsManques()">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-warning rounded-circle me-2" style="width:12px; height:12px;"></span>
+                    <h4 style="color: #000000;">🔶 Virements Manqués : <span id="alert-virements">{{ alertes_virements_manques }}</span> Cas</h4>
+                </div>
+            </div>
+            
+            <h4 class="fw-bold mb-3">Historique Récent {{ selected_year }}</h4>
+            
+            <div id="historique-container">
+                {% for operation in historique %}
+                <div class="bg-white shadow-sm rounded p-4 mb-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong class="d-block">{{ operation.retraite.nom }} {{ operation.retraite.prenom }}</strong>
+                            <small class="text-muted">{{ operation.operation_bancaire.date_piece|date:"d/m/Y" }}</small>
+                        </div>
+                        <span class="badge bg-success">{{ operation.montant|floatformat:2 }} DH</span>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">{{ operation.get_type_paiement_display }}</small>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="bg-white shadow-sm rounded p-4 mb-3 text-center">
+                    <p class="text-muted">Aucune opération récente pour {{ selected_year }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <!-- Section Retraités avec trimestres -->
+<!-- Section État des trimestres des retraités -->
+<div class="col-lg-12 mt-4">
+    <h4 style="color: #008B8D; margin-bottom: 1rem;">État des trimestres des retraités - {{ selected_year }}</h4>
+    
+    {% if retraites_avec_trimestres %}
+    <!-- Barre de recherche et filtres -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" id="searchRetraites" class="form-control" 
+                       placeholder="Rechercher un retraité..." onkeyup="filterRetraites()">
+                <button class="btn btn-outline-secondary" type="button" onclick="filterRetraites()">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" onclick="filterByStatus('all')">Tous</button>
+                <button class="btn btn-outline-success" onclick="filterByStatus('a_jour')">À jour</button>
+                <button class="btn btn-outline-warning" onclick="filterByStatus('en_retard')">En retard</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white shadow-sm rounded p-4">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover" id="retraitesTable">
+                <thead>
+                    <tr style="background-color: #3B947F; color: white;">
+                        <th>Nom complet</th>
+                        <th>Trimestres payés</th>
+                        <th>Trimestres manquants</th>
+                        <th>Montant trimestriel</th>
+                        <th>Total payé</th>
+                        <th>Total manquant</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for retraite in retraites_avec_trimestres %}
+                    <tr class="retraite-row" data-status="{% if retraite.trimestres_manquants %}en_retard{% else %}a_jour{% endif %}">
+                        <td>{{ retraite.nom_complet }}</td>
+                        <td>
+                            {% if retraite.trimestres_payes %}
+                                {% for trimestre in retraite.trimestres_payes %}
+                                    <span class="badge bg-success mb-1">{{ trimestre }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">Aucun</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if retraite.trimestres_manquants %}
+                                {% for trimestre in retraite.trimestres_manquants %}
+                                    <span class="badge bg-danger mb-1">{{ trimestre }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-success">Tous payés</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ retraite.montant_trimestriel|floatformat:2 }} DH</td>
+                        <td>{{ retraite.total_paye|floatformat:2 }} DH</td>
+                        <td>
+                            {% if retraite.trimestres_manquants %}
+                                <span class="text-danger">{{ retraite.total_manquant|floatformat:2 }} DH</span>
+                            {% else %}
+                                <span class="text-success">0.00 DH</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if retraite.trimestres_manquants %}
+                                <span class="badge bg-warning">En retard</span>
+                            {% else %}
+                                <span class="badge bg-success">À jour</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Résumé statistique -->
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Retraités à jour</h6>
+                        <h4 class="text-success">
+                            {{ retraites_avec_trimestres|length|add:"-retraites_en_retard" }} / {{ retraites_avec_trimestres|length }}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Retraités en retard</h6>
+                        <h4 class="text-warning">
+                            {{ retraites_en_retard }} / {{ retraites_avec_trimestres|length }}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Total manquant</h6>
+                        <h4 class="text-danger">
+                            {{ total_manquant_global|floatformat:2 }} DH
+                        </h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        Aucune donnée disponible pour l'année {{ selected_year }}. Veuillez importer des cotisations.
+    </div>
+    {% endif %}
+</div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div class="modal fade" id="nomsIncoherentsModal" tabindex="-1" aria-labelledby="nomsIncoherentsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header text-white" style="background-color: #3B947F;">
+                <h5 class="modal-title" id="nomsIncoherentsModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Noms incohérents détectés - {{ selected_year }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Les noms suivants n'ont pas pu être associés à des membres existants dans la base de données.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr style="background-color: #3B947F; color: white;">
+                                <th>Nom</th>
+                                <th>Trimestre</th>
+                                <th>Date</th>
+                                <th>Montant</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                              {% for nom in noms_incoherents %}
+                            <tr>
+                                <td>{{ nom.nom }}</td>
+                                
+                                <td>{{ nom.trimestre|default:"N/A" }}</td>
+
+                                
+                                <td>{{ nom.date_operation|date:"d/m/Y" }}</td>
+                                <td>{{ nom.montant }} DH</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">Aucun nom incohérent pour {{ selected_year }}</td>
+                            </tr>
+                            {% endfor %}
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn text-white" style="background-color: #008B8D;" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="virementsManquesModal" tabindex="-1" aria-labelledby="virementsManquesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header text-white" style="background-color: #3B947F;">
+                <h5 class="modal-title" id="virementsManquesModalLabel">
+                    <i class="fas fa-exclamation-circle me-2"></i>Virements manqués - {{ selected_year }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Les virements suivants n'ont pas été reçus dans les délais prévus.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr style="background-color: #3B947F; color: white;">
+                                <!--<th>Nom</th>
+                                <th>Prénom</th>-->
+                                <th>Nom Complet</th>
+                                <th>Trimestres Manquants</th>
+                                <th>Montant attendu</th>
+                                <th>Type</th>
+                                <!--<th>Statut</th>-->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for virement in virements_manques %}
+                            <tr>
+                               <!--- <td>{{ virement.nom }}</td>
+                                <td>{{ virement.prenom }}</td>-->
+                                <td>{{ virement.num_secu }}</td>
+                                <td> {% if virement.trimestre_manquant %}
+                                        {{ virement.trimestre_manquant }}
+                                    {% else %}
+                                        <span class="text-muted"> </span>
+                                    {% endif %}</td>
+                                <td>{{ virement.montant_attendu }} DH</td>
+                                <td>{{ virement.type_paiement }} </td>
+                                <!--<td><span class="badge bg-warning">{{ virement.get_statut_display }}</span></td>-->
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center">Aucun virement manqué pour {{ selected_year }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn text-white" style="background-color: #008B8D;" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Données JSON sécurisées -->
+{{ stats_data_json|json_script:"stats-data" }}
+
+<script>
+    // Récupérer les données depuis le script JSON
+    const statsDataElement = document.getElementById('stats-data');
+    let statsData = {
+        labels: [],
+        montants_cmss: [],
+        montants_cmcas: [],
+        total_cmss_annuel: 0,
+        total_cmcas_annuel: 0
+    };
+
+    if (statsDataElement) {
+        try {
+            const parsedData = JSON.parse(statsDataElement.textContent);
+            statsData = {
+                labels: Array.isArray(parsedData.labels) ? parsedData.labels : [],
+                montants_cmss: Array.isArray(parsedData.montants_cmss) ? parsedData.montants_cmss : [],
+                montants_cmcas: Array.isArray(parsedData.montants_cmcas) ? parsedData.montants_cmcas : [],
+                total_cmss_annuel: parseFloat(parsedData.total_cmss_annuel) || 0,
+                total_cmcas_annuel: parseFloat(parsedData.total_cmcas_annuel) || 0
+            };
+        } catch (error) {
+            console.error('Erreur de parsing JSON:', error);
+        }
+    }
+
+    console.log('Données chargées:', statsData);
+
+    // Convertir les montants en valeurs absolues avec sécurité
+    const absMontantsCmss = Array.isArray(statsData.montants_cmss) ? 
+        statsData.montants_cmss.map(value => Math.abs(parseFloat(value) || 0)) : [];
+    
+    const absMontantsCmcas = Array.isArray(statsData.montants_cmcas) ? 
+        statsData.montants_cmcas.map(value => Math.abs(parseFloat(value) || 0)) : [];
+
+    // Mettre à jour les totaux annuels dans l'interface
+    document.getElementById('total-cmss-annuel').textContent = 
+        statsData.total_cmss_annuel.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' DH';
+    
+    document.getElementById('total-cmcas-annuel').textContent = 
+        statsData.total_cmcas_annuel.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' DH';
+
+    let statsChart = null;
+    let selectedTrimestreIndex = null;
+
+    // Initialisation du graphique
+    function initChart() {
+        const ctx = document.getElementById('statsChart');
+        if (!ctx) {
+            console.error('Canvas statsChart non trouvé');
+            return;
+        }
+        
+        const chartCtx = ctx.getContext('2d');
+        
+        // S'assurer que les données sont valides
+        const validLabels = Array.isArray(statsData.labels) ? statsData.labels : [];
+        const validCmssData = Array.isArray(absMontantsCmss) ? absMontantsCmss : [];
+        const validCmcasData = Array.isArray(absMontantsCmcas) ? absMontantsCmcas : [];
+        
+        // Données par défaut si vide
+        const defaultData = [0, 0, 0, 0];
+        const displayCmssData = validCmssData.length > 0 ? validCmssData : defaultData;
+        const displayCmcasData = validCmcasData.length > 0 ? validCmcasData : defaultData;
+        const displayLabels = validLabels.length > 0 ? validLabels : ['T1', 'T2', 'T3', 'T4'];
+        
+        statsChart = new Chart(chartCtx, {
+            type: 'bar',
+            data: {
+                labels: displayLabels,
+                datasets: [
+                    {
+                        label: 'CMSS',
+                        data: displayCmssData,
+                        backgroundColor: '#28a745',
+                        borderColor: '#1e7e34',
+                        borderWidth: 2,
+                        borderRadius: 5,
+                        hoverBackgroundColor: '#218838'
+                    },
+                    {
+                        label: 'CMCAS',
+                        data: displayCmcasData,
+                        backgroundColor: '#17a2b8',
+                        borderColor: '#138496',
+                        borderWidth: 2,
+                        borderRadius: 5,
+                        hoverBackgroundColor: '#138496'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Montant (DH)',
+                            font: { weight: 'bold' }
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' DH';
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Trimestres',
+                            font: { weight: 'bold' }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: { size: 14 }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Montants totaux CMSS et CMCAS par trimestre',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 14 },
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + 
+                                    context.raw.toLocaleString('fr-FR', 
+                                    {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' DH';
+                            }
+                        }
+                    }
+                },
+                onClick: function(e, elements) {
+                    if (elements && elements.length > 0) {
+                        const index = elements[0].index;
+                        showTrimestreDetails(index);
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+    }
+
+    // Afficher les détails du trimestre
+    function showTrimestreDetails(index) {
+        selectedTrimestreIndex = index;
+        
+        const cmss = absMontantsCmss[index] || 0;
+        const cmcas = absMontantsCmcas[index] || 0;
+        const total = cmss + cmcas;
+        
+        const cmssPercent = total > 0 ? (cmss / total) * 100 : 0;
+        const cmcasPercent = total > 0 ? (cmcas / total) * 100 : 0;
+        
+        // Mettre à jour les détails
+        document.getElementById('detail-trimestre-nom').textContent = statsData.labels[index] || `Trimestre ${index + 1}`;        document.getElementById('detail-cmss').textContent = 
+            cmss.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' DH';
+        document.getElementById('detail-cmcas').textContent = 
+            cmcas.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' DH';
+        document.getElementById('detail-total').textContent = 
+            total.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' DH';
+        
+        // Mettre à jour la barre de progression
+        document.getElementById('progress-cmss').style.width = cmssPercent + '%';
+        document.getElementById('progress-cmss').setAttribute('aria-valuenow', cmssPercent);
+        document.getElementById('progress-cmcas').style.width = cmcasPercent + '%';
+        document.getElementById('progress-cmcas').setAttribute('aria-valuenow', cmcasPercent);
+        
+        // Afficher le panneau de détails
+        document.getElementById('trimestre-details').style.display = 'block';
+    }
+
+    // Cacher les détails du trimestre
+    function hideTrimestreDetails() {
+        selectedTrimestreIndex = null;
+        document.getElementById('trimestre-details').style.display = 'none';
+    }
+
+    // Fonctions pour ouvrir les modals
+    function openNomsIncoherents() {
+        const modal = new bootstrap.Modal(document.getElementById('nomsIncoherentsModal'));
+        modal.show();
+    }
+
+    function openVirementsManques() {
+        const modal = new bootstrap.Modal(document.getElementById('virementsManquesModal'));
+        modal.show();
+    }
+
+    // Gestion du changement d'année
+    document.getElementById('yearSelector').addEventListener('change', function() {
+        hideTrimestreDetails();
+        const selectedYear = this.value;
+        window.location.href = "{% url 'gestion:accueil' %}?year=" + selectedYear;
+    });
+
+    // Initialisation au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Vérifier que Chart.js est chargé
+        if (typeof Chart !== 'undefined') {
+            initChart();
+        } else {
+            console.error('Chart.js non chargé');
+            // Recharger après un délai
+            setTimeout(initChart, 1000);
+        }
+        
+        // Cacher les détails en cliquant à l'extérieur
+        document.addEventListener('click', function(e) {
+            const detailsPanel = document.getElementById('trimestre-details');
+            if (detailsPanel && detailsPanel.style.display !== 'none' && 
+                !detailsPanel.contains(e.target) && 
+                !e.target.closest('#statsChart')) {
+                hideTrimestreDetails();
+            }
+        });
+    });
+
+    // Actualisation automatique des données
+    function actualiserDonnees() {
+        fetch("{% url 'gestion:api_accueil_data' %}?year={{ selected_year }}")
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur réseau');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('total-remboursements').textContent = 
+                        parseFloat(data.total_remboursements || 0).toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' DH';
+                    
+                    document.getElementById('total-arrieres').textContent = 
+                        parseFloat(data.arrieres || 0).toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' DH';
+                    
+                    document.getElementById('alert-noms').textContent = data.alertes_noms_incoherents || 0;
+                    //document.getElementById('alert-trimesters ').textContent = data.alertes_remboursements_manques || 0;
+                    document.getElementById('alert-virements').textContent = data.alertes_virements_manques || 0;
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors de l\'actualisation:', error);
+            });
+    }
+// Fonction de filtrage des retraités par recherche
+function filterRetraites() {
+    const input = document.getElementById('searchRetraites');
+    const filter = input.value.toUpperCase();
+    const table = document.getElementById('retraitesTable');
+    const tr = table.getElementsByTagName('tr');
+    let visibleCount = 0;
+
+    for (let i = 1; i < tr.length; i++) {
+        const td = tr[i].getElementsByTagName('td')[0];
+        if (td) {
+            const txtValue = td.textContent || td.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                tr[i].style.display = "";
+                visibleCount++;
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+    
+    // Afficher un message si aucun résultat
+    const noResultsRow = document.getElementById('noResults');
+    if (noResultsRow) noResultsRow.remove();
+    
+    if (visibleCount === 0) {
+        const newRow = table.insertRow(-1);
+        newRow.id = 'noResults';
+        const cell = newRow.insertCell(0);
+        cell.colSpan = 7;
+        cell.className = 'text-center py-4 text-muted';
+        cell.innerHTML = 'Aucun retraité ne correspond à votre recherche';
+    }
+}
+
+// Fonction de filtrage par statut
+function filterByStatus(status) {
+    const rows = document.querySelectorAll('.retraite-row');
+    
+    rows.forEach(row => {
+        if (status === 'all') {
+            row.style.display = '';
+        } else {
+            if (row.getAttribute('data-status') === status) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        }
+    });
+    
+    // Réinitialiser la recherche
+    document.getElementById('searchRetraites').value = '';
+}
+
+// Initialiser la recherche au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    // Vérifier si le tableau existe avant d'appliquer le filtrage
+    const table = document.getElementById('retraitesTable');
+    if (table) {
+        filterRetraites();
+    }
+});
+    // Actualiser toutes les 2 minutes
+    setInterval(actualiserDonnees, 120000);
+</script>
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(59, 148, 127, 0.1);
+    }
+    .badge {
+        font-size: 0.85em;
+    }
+    .progress {
+        height: 8px;
+    }
+</style>
+{% endblock %}

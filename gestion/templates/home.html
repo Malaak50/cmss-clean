@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portail CMSS - Gestion des Cotisations</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+</head>
+<body>
+    <!-- Header avec bouton Sign In collé à droite -->
+    <header class="app-header">
+        <div class="header-content">
+            <a href="{% url 'login' %}" class="btn btn-signin">Sign In</a>
+        </div>
+    </header>
+
+    <!-- Contenu principal centré -->
+    <main class="app-main">
+        <div class="main-content">
+            <!-- Logo au centre -->
+            <div class="logo-container">
+                <img src="{% static 'images/logo.png' %}" alt="Logo CMSS" class="app-logo">
+            </div>
+
+            <!-- Description de l'application -->
+            <h1 class="app-title">Vos Cotisations, Votre Équipe, Parfaitement Gérées.</h1>
+            <p class="app-description">
+                Facilitez la gestion de vos cotisations CMSS avec une plateforme intuitive et performante.  
+                Une interface claire pour un suivi précis, permettant à vos équipes de se concentrer sur l'essentiel : la réussite de vos projets.
+            </p>
+
+            <!-- Bouton centré -->
+            <div class="action-buttons">
+                <a href="{% url 'login' %}" class="btn btn-connect">Connectez-vous</a>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

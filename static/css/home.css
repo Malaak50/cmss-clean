@@ -1,0 +1,138 @@
+/* Variables */
+:root {
+    --primary-green: #2e7d32;
+    --dark-green: #1b5e20;
+    --light-green: #81c784;
+    --white: #ffffff;
+    --light-gray: #f8f9fa;
+}
+
+/* Base */
+body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: url('../images/background.png') no-repeat center center fixed;
+    background-size: cover;
+    color: #333;
+}
+
+/* Header */
+.app-header {
+    padding: 0.5rem 01rem;
+     width: 100%;
+}
+
+.header-content {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    padding-right: 10rem;
+}
+/* Suppression du container qui limitait la largeur */
+.header-content .container {
+    max-width: none;
+    padding: 0;
+}
+/* Contenu principal */
+.app-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+
+.main-content {
+    text-align: center;
+    max-width: 800px;
+    padding: 0 2rem;
+}
+
+/* Logo */
+.logo-container {
+    margin-bottom: 1rem;
+}
+
+.app-logo {
+    height: 200px;
+    width: auto;
+    display: block;
+    margin: 0 auto;
+    position: relative;
+    top: -80px;
+}
+
+/* Texte */
+.app-title {
+    font-size: 3rem;
+    font-weight: 900;
+    margin-bottom: 1.5rem;
+    margin-top: -40px; 
+    color: var(--white);
+}
+
+.app-description {
+    font-weight: 400;
+    font-size: 1.25rem;
+    color: var(--white);
+    line-height: 1.6;
+    margin-top: -15px;
+}
+
+/* Boutons */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 0.75rem 2.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Style unifié pour Sign In et Connectez-vous */
+.btn-signin, .btn-connect {
+    background-color: transparent;
+    color: var(--white);
+    border: 2px solid var(--white);
+}
+/* Bouton Sign In - Version plus compacte */
+.btn-signin {
+    padding: 0.5rem 1.5rem; /* Taille réduite */
+    margin: 0; /* Suppression des marges */
+}
+.btn-signin:hover, .btn-connect:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .app-title {
+        font-size: 2rem;
+    }
+    
+    .app-description {
+        font-size: 1.1rem;
+    }
+    
+    .app-logo {
+        height: 150px;
+        top: -60px;
+    }
+    
+    .btn {
+        width: 100%;
+        padding: 0.75rem 1.5rem;
+    }
+}

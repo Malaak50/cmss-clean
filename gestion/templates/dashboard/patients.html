@@ -1,0 +1,665 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="container-fluid">
+    <!-- Messages d'alerte -->
+    {% if messages %}
+    <div class="row">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-left: 5px solid #28C7A2;">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- En-tête de page -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0" style="color: #3B947F;">CMSS - Portail de Gestion</h1>
+            <h2 class="h4 mb-0 mt-2" style="color: #000000;">Liste des retraités</h2>
+        </div>
+         <!-- Afficher le bouton d'ajout seulement pour les superutilisateurs -->
+        {% if request.user.is_superuser %}
+        <div>
+            <button class="btn" style="background-color: #28C7A2; color: white;" data-bs-toggle="modal" data-bs-target="#ajouterRetraiteModal">
+                <i class="fas fa-plus"></i> Ajouter un retraité
+            </button>
+        </div>
+        {% endif %} 
+    </div>
+
+    <!-- Barre de recherche -->
+    <div class="input-group mb-4" style="width: 300px; background-color: #f8f9fa; border-radius: 5px; border: 1px solid #ddd;">
+        <input type="text" class="form-control" placeholder="Rechercher..." id="searchInput" style="border: none; background: transparent;">
+        <span class="input-group-text" style="background: transparent; border: none;"><i class="fas fa-search" style="color: #28C7A2;"></i></span>
+    </div>
+    
+    <!-- Tableau des retraités -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="retraitesTable">
+                    <thead style="background-color: #3B947F; color: white;">
+                        <tr>
+                            <!--<th>ID</th>-->
+                            <th>Matricule</th>
+                            <th>Nom complet</th>
+                            <th>Mois de rattachement</th>
+                            <th>Agence</th>
+                            <th>Qualité</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for retraite in retraites %}
+                        <tr>
+                            <!--<td>{{ retraite.id }}</td>-->
+                            <td>{{ retraite.num_secu }}</td>
+                            <td>{{ retraite.nom_complet }}</td>
+                            <td>{{ retraite.mois_rattachement}}</td>
+                            <td>{{ retraite.nom_agence }}</td>
+                            <td>{{ retraite.qualite_personne }}</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                   <button class="btn btn-sm details-modal-btn" 
+                                      data-retraite-
+                                      style="background-color: #3B947F; color: white;"
+                                      data-retraite-num-secu="{{ retraite.num_secu }}">
+                                     <i class="fas fa-info-circle"></i> Détails
+                                   </button>
+
+                                    <button class="btn btn-sm tm-btn" id="retraite_tm_btn"
+                                      style="background-color: #28C7A2; color: white;" 
+                                      data-retraite-id="{{ retraite.id }}"
+                                       data-retraite-num-secu="{{ retraite.num_secu }}">
+                                      <i class="fas fa-edit"></i> TM/Arriérés
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <div class="alert alert-info" style="border-left: 5px solid #3B947F;">
+                                    Aucun retraité enregistré pour le moment.
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- Conteneur pour les alertes -->
+    <div id="alertsContainer"></div>
+    <!-- Modal Ajouter Retraité -->
+    <div class="modal fade" id="ajouterRetraiteModal" tabindex="-1" aria-labelledby="ajouterRetraiteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: #28C7A2; color: white;">
+                    <h5 class="modal-title" id="ajouterRetraiteModalLabel">Ajouter un retraité</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="retraiteForm" method="post" action="{% url 'patients' %}" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="nom_agence" class="form-label">Nom Agence</label>
+                                <select class="form-select" id="nom_agence" name="nom_agence" required style="border-color: #28C7A2;">
+                                    <option value="">Sélectionner une agence</option>
+                                    <option value="AGADIR">AGADIR</option>
+                                    <option value="BENI MELLAL">BENI MELLAL</option>
+                                    <option value="CASABLANCA">CASABLANCA</option>
+                                    <option value="FES">FES</option>
+                                    <option value="KENITRA">KENITRA</option>
+                                    <option value="MARRAKECH">MARRAKECH</option>
+                                    <option value="MOHAMMEDIA">MOHAMMEDIA</option>
+                                    <option value="OUJDA">OUJDA</option>
+                                    <option value="SETTAT">SETTAT</option>
+                                    <option value="SAFI">SAFI</option> 
+                                    <option value="SIEGE">SIEGE</option>
+                                    <option value="TANGER">TANGER</option>
+                                    <option value="EL JADIDA">EL JADIDA</option>
+                                    <option value="LAAYOUNE">LAAYOUNE</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="qualite_personne" class="form-label">Qualité</label>
+                                <select class="form-select" id="qualite_personne" name="qualite_personne" required style="border-color: #28C7A2;">
+                                    <option value="">Sélectionner une qualité</option>
+                                    <option value="Mutualiste">Mutualiste</option>
+                                    <option value="Veuve">Veuve</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="id_num_personne" class="form-label">ID Personne</label>
+                                <input type="text" class="form-control" id="id_num_personne" name="id_num_personne" required style="border-color: #28C7A2;">
+                                <div class="invalid-feedback" id="id_num_personne_feedback"></div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="num_secu" class="form-label">Numéro Sécurité Sociale</label>
+                                <input type="text" class="form-control" id="num_secu" name="num_secu" required style="border-color: #28C7A2;">
+                                <div class="invalid-feedback" id="num_secu_feedback"></div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="nom" class="form-label">Nom</label>
+                                <input type="text" class="form-control" id="nom" name="nom" required style="border-color: #28C7A2;">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="prenom" class="form-label">Prénom</label>
+                                <input type="text" class="form-control" id="prenom" name="prenom" required style="border-color: #28C7A2;">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="date_naissance" class="form-label">Date de Naissance</label>
+                                <input type="date" class="form-control" id="date_naissance" name="date_naissance" required style="border-color: #28C7A2;">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="mois_rattachement" class="form-label">Mois de rattachement</label>
+                                <input type="month" class="form-control" id="mois_rattachement" name="mois_rattachement" required style="border-color: #28C7A2;">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="pension_cnss" class="form-label">Pension CNSS (Mensuelle)</label>
+                                <input type="number" step="0.01" class="form-control" id="pension_cnss" name="pension_cnss" required style="border-color: #28C7A2;">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="pension_cimr" class="form-label">Pension CIMR (Mensuelle)</label>
+                                <input type="number" step="0.01" class="form-control" id="pension_cimr" name="pension_cimr" style="border-color: #28C7A2;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn" style="background-color: #3B947F; color: white;">
+                            <i class="fas fa-save"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Détails Retraité -->
+   {% include "dashboard/details_retraite_modal_content.html" %}
+   
+
+    <!-- Modal TM/Arriérés -->
+    <!--<div class="modal fade" id="tmArrieresModal" tabindex="-1" aria-labelledby="tmArrieresModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: #28C7A2; color: white;">
+                    <h5 class="modal-title" id="tmArrieresModalLabel">Gestion TM/Arriérés</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs" id="tmArrieresTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="tm-tab" data-bs-toggle="tab" data-bs-target="#tm-tab-pane" type="button" role="tab" aria-controls="tm-tab-pane" aria-selected="true" style="color: #3B947F;">TM</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="arrieres-tab" data-bs-toggle="tab" data-bs-target="#arrieres-tab-pane" type="button" role="tab" aria-controls="arrieres-tab-pane" aria-selected="false" style="color: #3B947F;">Arriérés</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="tmArrieresTabContent">
+                        <div class="tab-pane fade show active" id="tm-tab-pane" role="tabpanel" aria-labelledby="tm-tab" tabindex="0">
+                            <form id="tmForm" class="mt-3">
+                                <input type="hidden" id="tmRetraiteId" name="retraite_id">
+                                <div class="mb-3">
+                                    <label for="tmDate" class="form-label">Date</label>
+                                    <input type="date" class="form-control" id="tmDate" name="date" required style="border-color: #28C7A2;">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tmMontant" class="form-label">Montant</label>
+                                    <input type="number" step="0.01" class="form-control" id="tmMontant" name="montant" required style="border-color: #28C7A2;">
+                                </div>
+                                <button type="submit" class="btn" style="background-color: #3B947F; color: white;">Enregistrer TM</button>
+                            </form>
+                        </div>
+                        <div class="tab-pane fade" id="arrieres-tab-pane" role="tabpanel" aria-labelledby="arrieres-tab" tabindex="0">
+                            <form id="arrieresForm" class="mt-3">
+                                <input type="hidden" id="arrieresRetraiteId" name="retraite_id">
+                                <div class="mb-3">
+                                    <label for="arrieresCmss" class="form-label">Arriérés CMSS</label>
+                                    <input type="number" step="0.01" class="form-control" id="arrieresCmss" name="arrieres_cmss" required style="border-color: #28C7A2;">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="arrieresCmcas" class="form-label">Arriérés CMCAS</label>
+                                    <input type="number" step="0.01" class="form-control" id="arrieresCmcas" name="arrieres_cmcas" required style="border-color: #28C7A2;">
+                                </div>
+                                <button type="submit" class="btn" style="background-color: #3B947F; color: white;">Enregistrer Arriérés</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn" style="background-color: #28C7A2; color: white;" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+-->
+    <div class="modal fade" id="tmArrieresModal" tabindex="-1" aria-labelledby="tmArrieresModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                {% include "dashboard/gestion_tm_arrieres.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let TmBtn = document.getElementById('retraite_tm_btn');
+    const retraiteNumSecu = TmBtn.getAttribute('data-retraite-num-secu');
+    console.log(retraiteNumSecu);
+    
+    localStorage.setItem('data_retraite_num_secu', retraiteNumSecu);
+
+   
+    // -----------------------
+    // 1. Recherche
+    // -----------------------
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function () {
+            const value = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#retraitesTable tbody tr');
+            rows.forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(value) ? '' : 'none';
+            });
+        });
+    }
+
+    // -----------------------
+    // 2. Bouton TM / Arriérés - VERSION CORRIGEE
+    // -----------------------
+    document.addEventListener('click', function(e) {
+        const tmBtn = e.target.closest('.tm-btn');
+        if (tmBtn) {
+            try {
+                // Vérification robuste de l'élément et de ses attributs
+                if (!tmBtn || !tmBtn.hasAttribute('data-retraite-num-secu')) {
+                    console.error("Bouton TM mal configuré");
+                    showAlert('Erreur technique - bouton mal configuré', false);
+                    return;
+                }
+
+                const retraiteNumSecu = tmBtn.getAttribute('data-retraite-num-secu');
+                localStorage.setItem('data_retraite_num_secu', retraiteNumSecu);
+                
+                if (!retraiteNumSecu) {
+                    console.error("Numéro de sécurité sociale manquant");
+                    showAlert('Erreur: Impossible d\'identifier le retraité', false);
+                    return;
+                }
+
+                // Vérification des éléments de la modal
+                const tmModal = document.getElementById('tmArrieresModal');
+                if (!tmModal) {
+                    console.error("Modal TM/Arriérés introuvable");
+                    return;
+                }
+
+                // Initialisation sécurisée de la modal
+                const modal = new bootstrap.Modal(tmModal);
+                
+                // Configuration avant affichage
+                tmModal.addEventListener('show.bs.modal', function() {
+                    const tmNumSecuInput = document.getElementById('tmRetraiteNumSecu');
+                    const arrieresNumSecuInput = document.getElementById('arrieresRetraiteNumSecu');
+                    
+                    if (tmNumSecuInput) tmNumSecuInput.value = retraiteNumSecu;
+                    if (arrieresNumSecuInput) arrieresNumSecuInput.value = retraiteNumSecu;
+                });
+
+                modal.show();
+            } catch (error) {
+                console.error("Erreur lors de l'ouverture de la modal:", error);
+                showAlert('Une erreur est survenue', false);
+            }
+        }
+    });
+
+    // -----------------------
+    // 3. Soumissions Arriérés (UI only)
+    // -----------------------
+    const arrieresForm = document.getElementById('arrieresForm');
+    if (arrieresForm) {
+        arrieresForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const retraiteNumSecu = document.getElementById('arrieresRetraiteNumSecu')?.value;
+            if (!retraiteNumSecu) {
+                console.error("Numéro de sécurité sociale manquant");
+                return;
+            }
+            console.log("Enregistrement Arriérés pour retraite numéro de sécurité:", retraiteNumSecu);
+        });
+    }
+
+    // -----------------------
+    // Utilitaires d'affichage d'erreurs / succès
+    // -----------------------
+    function showFieldError(input, message) {
+        if (!input) return;
+        input.classList.add('is-invalid');
+        let feedback = document.getElementById(input.id + '_feedback');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.id = input.id + '_feedback';
+            feedback.classList.add('invalid-feedback');
+            input.parentNode.appendChild(feedback);
+        }
+        feedback.textContent = message;
+        feedback.style.display = 'block';
+    }
+
+    function clearFieldError(input) {
+        if (!input) return;
+        input.classList.remove('is-invalid');
+        const feedback = document.getElementById(input.id + '_feedback');
+        if (feedback) {
+            feedback.textContent = '';
+            feedback.style.display = 'none';
+        }
+    }
+
+    function clearAllFieldErrors(container) {
+        (container || document).querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        (container || document).querySelectorAll('.invalid-feedback').forEach(f => { f.textContent = ''; f.style.display = 'none'; });
+    }
+
+    function showSuccessMessage(message) {
+        let alertsContainer = document.getElementById('alertsContainer');
+        if (!alertsContainer) {
+            alertsContainer = document.createElement('div');
+            alertsContainer.id = 'alertsContainer';
+            document.querySelector('.container-fluid').prepend(alertsContainer);
+        }
+
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.style.cssText = 'border-left: 5px solid #28C7A2; margin-top: 20px;';
+        alertDiv.setAttribute('role', 'alert');
+        alertDiv.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        alertsContainer.innerHTML = '';
+        alertsContainer.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+    }
+
+    function showGlobalError(message) {
+        const alertsContainer = document.getElementById('alertsContainer');
+        const html = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        if (alertsContainer) {
+            alertsContainer.innerHTML = html;
+        } else {
+            alert(message);
+        }
+    }
+
+    // -----------------------
+    // 4. Vérification duplication (backend)
+    // -----------------------
+    async function checkDuplicate(field, value) {
+        try {
+            const response = await fetch(`/check-duplicate/?field=${field}&value=${encodeURIComponent(value)}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!response.ok) return false;
+            const data = await response.json();
+            return !!data.exists;
+        } catch (error) {
+            console.error("Erreur AJAX check-duplicate :", error);
+            return false;
+        }
+    }
+
+    async function validateField(input, regex, errorMessage, fieldName) {
+        clearFieldError(input);
+        const value = (input?.value || '').trim();
+        if (!value || !regex.test(value)) {
+            showFieldError(input, errorMessage);
+            return false;
+        }
+        const exists = await checkDuplicate(fieldName, value);
+        if (exists) {
+            showFieldError(input, `Ce ${fieldName.replace('_', ' ')} existe déjà.`);
+            return false;
+        }
+        return true;
+    }
+
+    // Validation on blur pour ID / NumSecu
+    const idPersonneInput = document.getElementById('id_num_personne');
+    const numSecuInput = document.getElementById('num_secu');
+
+    if (idPersonneInput) {
+        idPersonneInput.addEventListener('blur', () => {
+            validateField(idPersonneInput, /^\d{5,6}$/, "L'ID personne doit contenir entre 5 et 6 chiffres.", 'id_num_personne');
+        });
+    }
+    if (numSecuInput) {
+        numSecuInput.addEventListener('blur', () => {
+            validateField(numSecuInput, /^\d{8}$/, "Le numéro de sécurité sociale doit contenir exactement 8 chiffres.", 'num_secu');
+        });
+    }
+
+    // -----------------------
+    // 5. Soumission AJAX du formulaire "Ajouter un retraité"
+    // -----------------------
+    const retraiteForm = document.getElementById('retraiteForm');
+    if (retraiteForm) {
+        retraiteForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            
+            const formData = new FormData(retraiteForm);
+            const data = {};
+            formData.forEach((value, key) => data[key] = value);
+
+            try {
+                const response = await fetch('/ajouter-retraite/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: new URLSearchParams(data).toString()
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || "Erreur lors de l'ajout");
+                }
+
+                showSuccessMessage(result.message);
+                setTimeout(() => window.location.reload(), 1500);
+                
+            } catch (error) {
+                showGlobalError(error.message);
+            }
+        });
+    }
+
+    // -----------------------
+    // 6. Détails du retraité (modal)
+    // -----------------------
+    document.addEventListener('click', function(e) {
+        const detailsBtn = e.target.closest('.details-modal-btn');
+        if (detailsBtn) {
+            const retraiteNumSecu = detailsBtn.dataset.retraiteNumSecu;
+            
+            if (!retraiteNumSecu) {
+                console.error("Numéro de sécurité sociale manquant");
+                return;
+            }
+
+            fetch(`/retraite/${retraiteNumSecu}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erreur réseau');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        fillModalWithData(data);
+                        const modal = new bootstrap.Modal(document.getElementById('detailsRetraiteModal'));
+                        modal.show();
+                    } else {
+                        throw new Error(data.error || 'Erreur lors du chargement des détails');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert("Erreur lors du chargement des détails: " + error.message);
+                });
+        }
+    });
+
+    function fillModalWithData(data) {
+        document.getElementById('retraite-nom-complet').textContent = data.retraite.nom_complet;
+        document.getElementById('retraite-num-secu').textContent = data.retraite.num_secu;
+        document.getElementById('retraite-id-num-personne').textContent = data.retraite.id_num_personne;
+        document.getElementById('retraite-date-naissance').textContent = data.retraite.date_naissance;
+        document.getElementById('retraite-qualite').textContent = data.retraite.qualite_personne;
+
+        document.getElementById('retraite-nom-agence').textContent = data.retraite.nom_agence;
+        document.getElementById('retraite-mois-rattachement').textContent = data.retraite.mois_rattachement;
+        document.getElementById('retraite-pension-cnss').textContent = data.retraite.pension_cnss;
+        document.getElementById('retraite-pension-cimr').textContent = data.retraite.pension_cimr;
+        document.getElementById('retraite-cmss-trim').textContent = data.calculs.trim_cmss;
+        document.getElementById('retraite-cmcas-trim').textContent = data.calculs.trim_cmcas;
+
+        renderTmHistory(data.tms);
+        renderArrieresHistory(data.arrieres);
+    }
+
+    function renderTmHistory(tms) {
+        const tbody = document.getElementById('historique-tms');
+        tbody.innerHTML = tms.map(tm => `
+            <tr>
+                <td>${tm.date}</td>
+                <td>${tm.montant}</td>
+                <td>${tm.statut}</td>
+            </tr>
+        `).join('') || '<tr><td colspan="3" class="text-center">Aucun TM trouvé</td></tr>';
+    }
+
+    function renderArrieresHistory(arrieres) {
+        const tbody = document.getElementById('historique-arrieres');
+        if (!tbody) return;
+        
+        tbody.innerHTML = arrieres.map(arr => {
+            const nbMois = arr.nombre_de_mois ?? 'N/A';
+            const type = arr.type_arriere || 'N/A';
+            const cmss = parseFloat(arr.montant_cmss) || 0;
+            const cmcas = parseFloat(arr.montant_cmcas) || 0;
+            
+            let montant = 'N/A';
+            
+            if (type === 'CMSS') {
+                montant = cmss > 0 ? cmss.toFixed(2) : 'N/A';
+            }
+            else if (type === 'CMCAS') {
+                montant = cmcas > 0 ? cmcas.toFixed(2) : 'N/A';
+            }
+            else if (type === 'LES_DEUX') {
+                const parts = [];
+                if (cmss > 0) parts.push(cmss.toFixed(2));
+                if (cmcas > 0) parts.push(cmcas.toFixed(2));
+                montant = parts.length > 0 ? parts.join(' / ') : 'N/A';
+            }
+            
+            return `
+            <tr>
+                <td>${arr.date_arriere || 'N/A'}</td>
+                <td>${type}</td>
+                <td>${nbMois}</td>
+                <td>${montant}</td>
+                <td>${arr.statut || 'N/A'}</td>
+            </tr>`;
+            
+        }).join('') || '<tr><td colspan="5">Aucun arriéré</td></tr>';
+    }
+
+    function formatMoney(amount) {
+        if (amount === null || amount === undefined || amount === '') return '0,00';
+        return parseFloat(amount).toFixed(2).replace('.', ',');
+    }
+});
+    </script>
+
+
+
+
+
+
+<style>
+    .table thead th {
+        font-weight: 600;
+        vertical-align: middle;
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(40, 199, 162, 0.1);
+    }
+    .is-invalid {
+        border-color: #dc3545;
+    }
+    .invalid-feedback {
+        color: #dc3545;
+        font-size: 0.875em;
+        display: block;
+    }
+    .nav-tabs .nav-link.active {
+        color: #3B947F;
+        font-weight: bold;
+        border-bottom: 3px solid #28C7A2;
+    }
+    .nav-tabs .nav-link:hover {
+        color: #28C7A2;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #28C7A2;
+        box-shadow: 0 0 0 0.25rem rgba(40, 199, 162, 0.25);
+    }
+    .btn {
+        transition: all 0.3s ease;
+    }
+    .btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .table-responsive {
+        overflow-x: auto;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,195 @@
+/* Structure Principale */
+.dashboard-wrapper {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
+/* Sidebar Styles - Version Professionnelle Blanche */
+.sidebar {
+    width: 280px;
+    background: white;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.05);
+    position: fixed;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    border-right: 1px solid #eaeaea;
+}
+
+.sidebar-brand {
+    padding: 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.sidebar-logo {
+    height: 60px;
+    width: auto;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-logo:hover {
+    transform: scale(1.05);
+}
+
+.app-name {
+    display: block;
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: 1.2rem;
+    margin-top: 0.5rem;
+    letter-spacing: 0.5px;
+}
+
+/* Menu Navigation */
+.sidebar-nav {
+    flex: 1;
+    padding: 1.5rem 0;
+    overflow-y: auto;
+}
+
+.nav-item {
+    margin: 0.25rem 1.5rem;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.nav-item a {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem 1.5rem;
+    color: #5a6a7e;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.nav-item i {
+    width: 24px;
+    text-align: center;
+    margin-right: 1rem;
+    font-size: 1.1rem;
+    color: #28C7A2; /* Couleur CMSS */
+}
+
+.nav-item:hover {
+    background-color: #f5f7fa;
+}
+
+.nav-item:hover a {
+    color: #2c3e50;
+}
+
+.nav-item.active {
+    background-color: rgba(40, 199, 162, 0.1); /* Version light du vert CMSS */
+    border-left: 4px solid #28C7A2;
+}
+
+.nav-item.active a {
+    color: #28C7A2;
+    font-weight: 600;
+}
+
+.nav-item.active i {
+    color: #28C7A2;
+}
+
+/* Section Déconnexion */
+.logout-section {
+    padding: 1.5rem;
+    border-top: 1px solid #f0f0f0;
+    margin-top: auto;
+}
+
+.btn-logout {
+    background: transparent;
+    border: none;
+    color: #5a6a7e;
+    width: 100%;
+    text-align: left;
+    padding: 0.8rem 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.btn-logout:hover {
+    background-color: #f5f7fa;
+    color: #e74c3c;
+}
+
+.btn-logout i {
+    margin-right: 1rem;
+    width: 24px;
+    text-align: center;
+    color: #e74c3c;
+}
+
+/* Contenu Principal */
+.main-content {
+    margin-left: 280px;
+    flex: 1;
+    padding: 2.5rem;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    .sidebar {
+        width: 240px;
+    }
+    .main-content {
+        margin-left: 240px;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 70px;
+        overflow: hidden;
+    }
+    
+    .app-name, .nav-item span, .btn-logout span {
+        display: none;
+    }
+    
+    .main-content {
+        margin-left: 70px;
+    }
+    
+    .sidebar-nav {
+        padding: 1rem 0;
+    }
+    
+    .nav-item {
+        margin: 0.25rem 0.5rem;
+    }
+    
+    .nav-item a {
+        padding: 0.8rem;
+        justify-content: center;
+    }
+    
+    .nav-item i {
+        margin-right: 0;
+        font-size: 1.3rem;
+    }
+    
+    .logout-section {
+        padding: 1rem 0.5rem;
+    }
+    
+    .btn-logout {
+        padding: 0.8rem;
+        justify-content: center;
+    }
+}

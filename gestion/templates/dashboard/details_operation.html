@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% extends "dashboard/base_dashboard.html" %}
+{% load static %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Détails de l'opération</h2>
+
+    <ul class="list-group mb-3">
+        <li class="list-group-item"><strong>Nº pièce :</strong> {{ operation.N_piece }}</li>
+        <li class="list-group-item"><strong>Date :</strong> {{ operation.date_piece }}</li>
+        <li class="list-group-item"><strong>Montant interne :</strong> {{ operation.Montant_en_devise_interne }}</li>
+        <li class="list-group-item"><strong>Description :</strong> {{ operation.Texte }}</li>
+    </ul>
+
+    <h4>Cotisations liées</h4>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Retraité</th>
+                <th>Montant</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cotisation in cotisations %}
+            <tr>
+                <td>{{ cotisation.retraite.nom }} {{ cotisation.retraite.prenom }}</td>
+                <td>{{ operation.Montant_en_devise_interne }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2" class="text-center">Aucune cotisation liée</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{% url 'cotisations_list' %}" class="btn btn-secondary">Retour</a>
+</div>
+{% endblock %}

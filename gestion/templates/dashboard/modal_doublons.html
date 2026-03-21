@@ -1,0 +1,45 @@
+<div class="modal fade" id="doublonsModal" tabindex="-1" aria-labelledby="doublonsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header text-white" style="background-color: #3B947F;">
+                <h5 class="modal-title" id="doublonsModalLabel">
+                    <i class="fas fa-copy me-2"></i>Doublons ignorés
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr style="background-color: #3B947F; color: white;">
+                                <th>Référence</th>
+                                <th>Date</th>
+                                <th>Montant</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if doublons %}
+                                {% for doublon in doublons %}
+                                <tr>
+                                    <td>{{ doublon.reference }}</td>
+                                    <td>{{ doublon.date }}</td>
+                                    <td>{{ doublon.montant }} DH</td>
+                                    <td>{{ doublon.description }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center">Aucun détail de doublon disponible</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn text-white" style="background-color: #008B8D;" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
